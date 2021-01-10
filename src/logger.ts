@@ -25,7 +25,7 @@ const logTransports = [
 const logger = createLogger({
   format: format.combine(format.timestamp()),
   transports: logTransports,
-  defaultMeta: { service: "api" },
+  defaultMeta: { service: "monitor" },
 });
 
 export default logger;
