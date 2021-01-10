@@ -50,6 +50,7 @@
         "devDependencies": ["**/*.test.ts", "**/*.spec.ts"]
       }
     ],
+    "import/order": "off",
     "no-unused-vars": "off",
     "dot-notation": "off",
     "class-methods-use-this": "off",
