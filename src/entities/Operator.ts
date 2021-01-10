@@ -7,6 +7,7 @@ import {
   ManyToOne,
   ManyToMany,
   Index,
+  JoinTable,
 } from "typeorm";
 import { Deposit } from "./Deposit";
 import { User } from "./User";
@@ -20,6 +21,7 @@ export class Operator {
   user: User;
 
   @ManyToMany((_type) => Operator, (operator) => operator.deposits)
+  @JoinTable()
   deposits: Deposit[];
 
   @Index({ unique: true })
