@@ -10,10 +10,12 @@
     "dev": "ts-node ./src/server.ts",
     "start": "node dist/src/server.js",
     "test": "jest",
+    "db-sync": "cross-env DB_SYNC=true ts-node ./src/server.ts",
     "fix-lint": "./node_modules/eslint/bin/eslint.js  src --ext .ts --fix"
   },
   "dependencies": {
     "connection-string-parser": "^1.0.3",
+    "cross-env": "^7.0.3",
     "dotenv": "8.2.0",
     "nodemon": "2.0.6",
     "pg": "^8.5.1",
