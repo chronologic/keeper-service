@@ -4,25 +4,20 @@ const parser = new ConnectionStringParser({
   scheme: "postgres",
 });
 
-const parsed = parser.parse(process.env.DATABASE_URL);
-const isProduction = process.env.NODE_ENV === "production";
+const parsed = parser.parse(process.env.DB_URL);
+const { host, port } = parsed.hosts[0];
 
 module.exports = {
   type: "postgres",
-  host: parsed.hosts[0].host || "localhost",
-  port: parsed.hosts[0].port || 5432,
+  host: host || "localhost",
+  port: port || 5432,
   username: parsed.username || "keeper",
   password: parsed.password || "keeper",
   database: parsed.endpoint || "keeper",
-  synchronize: process.env.DB_SYNCHRONIZE === "true",
-  logging: process.env.DEBUG === "true",
-  entities: [isProduction ? "build/src/entities/**/*.js" : "src/entities/**/*.ts"],
-  migrations: [isProduction ? "build/src/migration/**/*.js" : "src/migration/**/*.ts"],
-  subscribers: [isProduction ? "build/src/subscriber/**/*.js" : "src/subscriber/**/*.ts"],
-  ssl: parsed.hosts[0].host !== "localhost",
-  cli: {
-    entitiesDir: isProduction ? "build/src/entities" : "src/entities",
-    migrationsDir: isProduction ? "build/src/migration" : "src/migration",
-    subscribersDir: isProduction ? "build/src/subscriber" : "src/subscriber",
-  },
+  synchronize: process.env.DB_SYNC === "true",
+  logging: process.env.LOG_LEVEL === "debug",
+  entities: ["build/src/entities/**/*.js", "src/entities/**/*.ts"],
+  migrations: ["build/src/migrations/**/*.js", "src/migrations/**/*.ts"],
+  subscribers: ["build/src/subscribers/**/*.js", "src/subscribers/**/*.ts"],
+  ssl: host !== "localhost",
 };
