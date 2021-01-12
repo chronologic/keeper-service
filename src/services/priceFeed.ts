@@ -1,7 +1,9 @@
 import fetch from 'node-fetch';
-import logger from '../logger';
+import { createLogger } from '../logger';
 
-export async function getEthToBtc(): Promise<number> {
+const logger = createLogger('priceFeed');
+
+export async function getEthToBtcRatio(): Promise<number> {
   logger.debug('fetching eth/btc ratio from coingecko...');
   const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=btc');
   const json = await res.json();

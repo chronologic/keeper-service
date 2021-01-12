@@ -4,9 +4,11 @@ import { getConnection } from 'typeorm';
 import { Deposit } from '../entities/Deposit';
 import { Operator } from '../entities/Operator';
 import { DEPOSIT_SYNC_MIN_BLOCK } from '../env';
-import logger from '../logger';
+import { createLogger } from '../logger';
 import { DepositStatus } from '../types';
 import { bondedEcdsaKeepContractAt, bondedEcdsaKeepFactoryContract, depositContractAt } from './ethProvider';
+
+const logger = createLogger('depositSync');
 
 async function init(): Promise<void> {
   listenForNewDeposists();

@@ -1,4 +1,4 @@
-import { createLogger, format, transports } from 'winston';
+import { createLogger as createWinstonLogger, format, Logger, transports } from 'winston';
 
 const logTransports = [
   new transports.File({
@@ -26,10 +26,14 @@ const logTransports = [
   }),
 ];
 
-const logger = createLogger({
-  format: format.combine(format.timestamp()),
-  transports: logTransports,
-  defaultMeta: { service: 'monitor' },
-});
+export function createLogger(serviceName: string): Logger {
+  return createWinstonLogger({
+    format: format.combine(format.timestamp()),
+    transports: logTransports,
+    defaultMeta: { service: serviceName },
+  });
+}
+
+const logger = createLogger('service');
 
 export default logger;

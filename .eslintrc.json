@@ -62,6 +62,7 @@
     "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
     "no-restricted-syntax": "off",
     "no-await-in-loop": "off",
+    "operator-linebreak": "off",
     "max-len": [
       "error",
       {
