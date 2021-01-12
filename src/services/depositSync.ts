@@ -6,16 +6,20 @@ import { Operator } from '../entities/Operator';
 import { DEPOSIT_SYNC_MIN_BLOCK } from '../env';
 import logger from '../logger';
 import { DepositStatus } from '../types';
-import {
-  bondedEcdsaKeepContractAt,
-  bondedEcdsaKeepFactoryContract,
-  depositContractAt,
-  wsProvider,
-} from './ethProvider';
+import { bondedEcdsaKeepContractAt, bondedEcdsaKeepFactoryContract, depositContractAt } from './ethProvider';
 
 async function init(): Promise<void> {
+  listenForNewDeposists();
   await syncDepositsFromLogs();
-  // await syncDeposits();
+}
+
+function listenForNewDeposists(): void {
+  bondedEcdsaKeepFactoryContract.on('BondedECDSAKeepCreated', async (...args) => {
+    const [_a, _m, _k, _o, _n, event] = args;
+    logger.info(`⭐ new BondedECDSAKeepCreated event at block ${event.blockNumber}`);
+    const deposit = await mapAndStoreBondedEcdsaKeepCreatedEvent(event);
+    logger.info(`✅ stored deposit ${deposit.depositAddress}`);
+  });
 }
 
 async function syncDepositsFromLogs() {
@@ -25,8 +29,6 @@ async function syncDepositsFromLogs() {
     bondedEcdsaKeepFactoryContract.filters.BondedECDSAKeepCreated(),
     lastSyncedBlockNumber
   );
-
-  // wsProvider.resetEventsBlock();
 
   for (const log of logs) {
     const deposit = await mapAndStoreBondedEcdsaKeepCreatedEvent(log);
