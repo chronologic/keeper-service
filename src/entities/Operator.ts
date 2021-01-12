@@ -9,6 +9,7 @@ import {
   Index,
   JoinTable,
 } from 'typeorm';
+import { lowercaseTransformer } from './shared';
 import { Deposit } from './Deposit';
 import { User } from './User';
 
@@ -17,15 +18,15 @@ export class Operator {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((_type) => User, { onDelete: 'CASCADE' })
+  @ManyToOne((_type) => User, { nullable: true, onDelete: 'SET NULL' })
   user: User;
 
-  @ManyToMany((_type) => Operator, (operator) => operator.deposits)
+  @ManyToMany((_type) => Deposit, (deposit) => deposit.operators)
   @JoinTable()
   deposits: Deposit[];
 
   @Index({ unique: true })
-  @Column()
+  @Column({ transformer: lowercaseTransformer })
   address: string;
 
   @CreateDateColumn()

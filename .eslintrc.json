@@ -60,6 +60,8 @@
     "quotes": ["error", "single"],
     "object-curly-newline": "off",
     "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
+    "no-restricted-syntax": "off",
+    "no-await-in-loop": "off",
     "max-len": [
       "error",
       {
@@ -68,7 +70,8 @@
         "ignoreRegExpLiterals": true,
         "ignoreComments": true
       }
-    ]
+    ],
+    "no-shadow": "off"
   },
   "overrides": [
     {

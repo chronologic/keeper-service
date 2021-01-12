@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 
-import { BONDED_ECDSA_KEEP_FACTORY_ADDRESS, TBTC_SYSTEM_ADDRESS } from '../env';
+import { BONDED_ECDSA_KEEP_FACTORY_ADDRESS, INFURA_API_KEY, TBTC_SYSTEM_ADDRESS } from '../env';
 import tbtcSystemAbi from '../abi/TBTCSystem.json';
 import bondedEcdsaKeepFactoryAbi from '../abi/BondedECDSAKeepFactory.json';
 import bondedEcdsaKeepAbi from '../abi/BondedECDSAKeep.json';
@@ -8,23 +8,26 @@ import depositAbi from '../abi/Deposit.json';
 
 const SIXTY_SECONDS_MS = 60 * 1000;
 
-const provider = ethers.getDefaultProvider();
+// const provider = ethers.getDefaultProvider();
+const wsProvider = new ethers.providers.InfuraWebSocketProvider('mainnet', INFURA_API_KEY);
+const httpProvider = new ethers.providers.InfuraProvider('mainnet', INFURA_API_KEY);
 // lower polling interval to reduce resource usage
-provider.pollingInterval = SIXTY_SECONDS_MS;
+httpProvider.pollingInterval = SIXTY_SECONDS_MS;
 
-export default provider;
+export { wsProvider };
+export { httpProvider };
 
-export const tbtcSystemContract = new ethers.Contract(TBTC_SYSTEM_ADDRESS, tbtcSystemAbi, provider);
+export const tbtcSystemContract = new ethers.Contract(TBTC_SYSTEM_ADDRESS, tbtcSystemAbi, wsProvider);
 export const bondedEcdsaKeepFactoryContract = new ethers.Contract(
   BONDED_ECDSA_KEEP_FACTORY_ADDRESS,
   bondedEcdsaKeepFactoryAbi,
-  provider
+  wsProvider
 );
 
 export function bondedEcdsaKeepContractAt(address: string): ethers.Contract {
-  return new ethers.Contract(address, bondedEcdsaKeepAbi, provider);
+  return new ethers.Contract(address, bondedEcdsaKeepAbi, wsProvider);
 }
 
 export function depositContractAt(address: string): ethers.Contract {
-  return new ethers.Contract(address, depositAbi, provider);
+  return new ethers.Contract(address, depositAbi, wsProvider);
 }

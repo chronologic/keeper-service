@@ -1,5 +1,7 @@
+import { BigNumber } from 'ethers';
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToOne } from 'typeorm';
-import { bigNumberColumnOptions } from './constants';
+
+import { bigNumberColumnOptions, lowercaseTransformer } from './shared';
 import { User } from './User';
 
 @Entity()
@@ -11,11 +13,11 @@ export class Payment {
   user: User;
 
   @Index({ unique: true })
-  @Column()
+  @Column({ transformer: lowercaseTransformer })
   txHash: string;
 
   @Column(bigNumberColumnOptions)
-  amount: string;
+  amount: BigNumber;
 
   @Column()
   status: string;
