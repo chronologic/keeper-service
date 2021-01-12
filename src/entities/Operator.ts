@@ -8,16 +8,16 @@ import {
   ManyToMany,
   Index,
   JoinTable,
-} from "typeorm";
-import { Deposit } from "./Deposit";
-import { User } from "./User";
+} from 'typeorm';
+import { Deposit } from './Deposit';
+import { User } from './User';
 
 @Entity()
 export class Operator {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((_type) => User, { onDelete: "CASCADE" })
+  @ManyToOne((_type) => User, { onDelete: 'CASCADE' })
   user: User;
 
   @ManyToMany((_type) => Operator, (operator) => operator.deposits)

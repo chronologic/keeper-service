@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToMany } from "typeorm";
-import { Operator } from "./Operator";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToMany } from 'typeorm';
+import { bigNumberColumnOptions } from './constants';
+import { Operator } from './Operator';
 
 @Entity()
 export class Deposit {
@@ -13,13 +14,21 @@ export class Deposit {
   @Column()
   contractAddress: string;
 
-  // uint256 max length in base-10 is 78 characters
-  @Column({ type: "numeric", precision: 78, scale: 0 })
+  @Index()
+  @Column({ type: 'int' })
+  onChainId: number;
+
+  @Column(bigNumberColumnOptions)
   lotSize: string;
 
-  // uint256 max length in base-10 is 78 characters
-  @Column({ type: "numeric", precision: 78, scale: 0 })
+  @Column(bigNumberColumnOptions)
+  bondedEth: string;
+
+  @Column(bigNumberColumnOptions)
   redemptionCostEth: string;
+
+  @Column({ type: 'smallint' })
+  undercollateralizedThresholdPercent: number;
 
   @Column()
   status: string;

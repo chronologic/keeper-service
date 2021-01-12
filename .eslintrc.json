@@ -42,6 +42,7 @@
     "arrow-parens": ["error", "always"],
     "semi": "error",
     "no-extra-semi": 0,
+    "no-use-before-define": "off",
     "import/no-unresolved": "off",
     "import/prefer-default-export": 0,
     "import/no-extraneous-dependencies": [
@@ -56,8 +57,9 @@
     "class-methods-use-this": "off",
     "comma-dangle": ["error", "always-multiline"],
     "handle-callback-err": "error",
-    "quotes": ["error", "double"],
+    "quotes": ["error", "single"],
     "object-curly-newline": "off",
+    "no-plusplus": ["error", { "allowForLoopAfterthoughts": true }],
     "max-len": [
       "error",
       {

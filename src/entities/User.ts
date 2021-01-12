@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, OneToMany } from "typeorm";
-import { Payment } from "./Payment";
-import { Operator } from "./Operator";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, OneToMany } from 'typeorm';
+import { Payment } from './Payment';
+import { Operator } from './Operator';
+import { bigNumberColumnOptions } from './constants';
 
 @Entity()
 export class User {
@@ -21,8 +22,7 @@ export class User {
   @Column()
   paymentAddressEth: string;
 
-  // uint256 max length in base-10 is 78 characters
-  @Column({ type: "numeric", precision: 78, scale: 0 })
+  @Column(bigNumberColumnOptions)
   balanceEth: string;
 
   @Column()
