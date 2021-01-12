@@ -31,7 +31,7 @@ async function checkDeposits(): Promise<void> {
     const bondedEthInBtc = bondedEth * ethToBtcRatio;
     const collateralizationPercent = (bondedEthInBtc * 100) / lotSizeBtc;
     const adjustedUndercollateralizedThresholdPercent =
-      deposit.undercollateralizedThresholdPercent + COLLATERAL_BUFFER_PERCENT + 50;
+      deposit.undercollateralizedThresholdPercent + COLLATERAL_BUFFER_PERCENT;
     const isBelowRedemptionThreshold = collateralizationPercent < adjustedUndercollateralizedThresholdPercent;
     logger.debug({
       depositAddress: deposit.depositAddress,
