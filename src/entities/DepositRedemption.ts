@@ -1,16 +1,26 @@
 import { BigNumber } from 'ethers';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  ManyToMany,
+  ManyToOne,
+} from 'typeorm';
 
 import { bigNumberColumnOptions, lowercaseTransformer } from './shared';
 import { Operator } from './Operator';
+import { Deposit } from './Deposit';
 
 @Entity()
-export class Deposit {
+export class DepositRedemption {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToMany((_type) => Operator, (operator) => operator.deposits)
-  operators: Operator[];
+  @ManyToOne((_type) => Deposit, { nullable: true, onDelete: 'CASCADE' })
+  user: Deposit;
 
   @Index({ unique: true })
   @Column({ transformer: lowercaseTransformer })

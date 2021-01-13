@@ -17,17 +17,17 @@ httpProvider.pollingInterval = SIXTY_SECONDS_MS;
 export { wsProvider };
 export { httpProvider };
 
-export const tbtcSystemContract = new ethers.Contract(TBTC_SYSTEM_ADDRESS, tbtcSystemAbi, wsProvider);
+export const tbtcSystemContract = new ethers.Contract(TBTC_SYSTEM_ADDRESS, tbtcSystemAbi, httpProvider);
 export const bondedEcdsaKeepFactoryContract = new ethers.Contract(
   BONDED_ECDSA_KEEP_FACTORY_ADDRESS,
   bondedEcdsaKeepFactoryAbi,
-  wsProvider
+  httpProvider
 );
 
 export function bondedEcdsaKeepContractAt(address: string): ethers.Contract {
-  return new ethers.Contract(address, bondedEcdsaKeepAbi, wsProvider);
+  return new ethers.Contract(address, bondedEcdsaKeepAbi, httpProvider);
 }
 
 export function depositContractAt(address: string): ethers.Contract {
-  return new ethers.Contract(address, depositAbi, wsProvider);
+  return new ethers.Contract(address, depositAbi, httpProvider);
 }
