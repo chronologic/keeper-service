@@ -7,7 +7,7 @@ import { DEPOSIT_SYNC_MIN_BLOCK } from '../env';
 import { createLogger } from '../logger';
 import { DepositStatus } from '../types';
 import { bnToNumberBtc } from '../utils/bnToNumber';
-import { bondedEcdsaKeepContractAt, depositContractAt, tbtcSystemContract } from './ethProvider';
+import { bondedEcdsaKeepContractAt, depositContractAt, tbtcSystemContract } from './ethClient';
 
 const logger = createLogger('depositSync');
 

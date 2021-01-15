@@ -8,7 +8,7 @@ import { DepositStatus } from '../types';
 import { getEthToBtcRatio } from './priceFeed';
 import { bnToNumberBtc, bnToNumberEth } from '../utils/bnToNumber';
 import { numberToBnBtc } from '../utils/numberToBn';
-import { depositContractAt } from './ethProvider';
+import { depositContractAt } from './ethClient';
 
 const logger = createLogger('depositMonitor');
 const minLotSize = numberToBnBtc(MIN_LOT_SIZE_BTC).toString();
@@ -92,7 +92,9 @@ async function checkIsInRedeemableState(deposit: Deposit): Promise<boolean> {
   return false;
 }
 
-async function markDepositForRedemption(deposit: Deposit): Promise<void> {}
+async function markDepositForRedemption(deposit: Deposit): Promise<void> {
+  console.log('lol');
+}
 
 async function updateDepositStatus(deposit: Deposit, statusCode: number): Promise<void> {
   const connection = getConnection();

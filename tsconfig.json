@@ -13,7 +13,8 @@
     },
     "resolveJsonModule": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "typeRoots": ["./node_modules/@types/", "./src/"]
   },
   "include": ["src/**/*"]
 }
