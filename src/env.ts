@@ -13,3 +13,4 @@ export const ELECTRUMX_HOST = process.env.ELECTRUMX_HOST || '';
 export const ELECTRUMX_PORT = process.env.ELECTRUMX_PORT || '';
 export const ELECTRUMX_PROTOCOL = process.env.ELECTRUMX_PROTOCOL || '';
 export const ELECTRUMX_NETWORK = process.env.ELECTRUMX_NETWORK || '';
+export const BTC_ZPRV = process.env.BTC_ZPRV || '';

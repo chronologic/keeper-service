@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 /* eslint-disable camelcase */
 declare module 'electrum-client-js' {
   export default class ElectrumClient {
@@ -53,4 +54,42 @@ declare module 'electrum-client-js' {
 
     mempool_getFeeHistogram(): Promise<any>;
   }
+}
+
+declare module 'bip84' {
+  interface FromZPrvConstructor {
+    new (zprv: string): fromZPrv;
+  }
+  class fromZPrv {
+    constructor(zprv: string);
+
+    getAccountPrivateKey(): string;
+
+    getAccountPublicKey(): string;
+
+    getPrivateKey(index: number, isChange?: boolean): string;
+
+    getPublicKey(index: number, isChange?: boolean): string;
+
+    getAddress(index: number, isChange?: boolean): string;
+  }
+  interface FromZPubConstructor {
+    new (zpub: string): fromZPub;
+  }
+  class fromZPub {
+    constructor(zpub: string);
+
+    getAccountPublicKey(): string;
+
+    getPublicKey(index: number, isChange?: boolean): string;
+
+    getAddress(index: number, isChange?: boolean): string;
+  }
+
+  const exported: {
+    fromZPrv: FromZPrvConstructor;
+    fromZPub: FromZPubConstructor;
+  };
+
+  export default exported;
 }

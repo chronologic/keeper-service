@@ -14,6 +14,7 @@
     "fix-lint": "./node_modules/eslint/bin/eslint.js  src --ext .ts --fix"
   },
   "dependencies": {
+    "bip84": "^0.2.4",
     "bitcoinjs-lib": "^5.2.0",
     "connection-string-parser": "^1.0.3",
     "cross-env": "^7.0.3",
