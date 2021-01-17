@@ -43,7 +43,7 @@ async function checkDeposits(): Promise<void> {
   }
 
   logger.info(
-    `🎉 checked ${deposits.length} collateral. attempted to mark ${depositsToRedeem.length} for redemption. marked ${marked} for redemption, skipped ${skipped}`
+    `🎉 checked ${deposits.length} collateral. Attempted to mark ${depositsToRedeem.length} for redemption. marked ${marked} for redemption, skipped ${skipped}`
   );
 }
 

@@ -1,8 +1,18 @@
 import { BigNumber } from 'ethers';
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  Index,
+  ManyToMany,
+  OneToMany,
+} from 'typeorm';
 
 import { bigNumberColumnOptions, lowercaseTransformer } from './shared';
 import { Operator } from './Operator';
+import { DepositOperation } from './DepositOperation';
 
 @Entity()
 export class Deposit {
@@ -11,6 +21,9 @@ export class Deposit {
 
   @ManyToMany((_type) => Operator, (operator) => operator.deposits)
   operators: Operator[];
+
+  @OneToMany((_type) => DepositOperation, (depositOperation) => depositOperation.deposit, { nullable: true })
+  depositOperations: DepositOperation[];
 
   @Index({ unique: true })
   @Column({ transformer: lowercaseTransformer })
@@ -31,7 +44,7 @@ export class Deposit {
   bondedEth: BigNumber;
 
   @Column({ ...bigNumberColumnOptions, nullable: true })
-  redemptionCostEth: BigNumber;
+  redemptionCostEthEquivalent: BigNumber;
 
   @Column({ type: 'smallint' })
   undercollateralizedThresholdPercent: number;

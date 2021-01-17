@@ -77,7 +77,7 @@ interface IFeeEstimate {
 const MAX_ADDRESS_GAP = 10;
 const AMOUNT_MULTIPLIER = 100000000;
 // eslint-disable-next-line new-cap
-const btcAccount = new bip84.fromZPrv(BTC_ZPRV);
+const wallet = new bip84.fromZPrv(BTC_ZPRV);
 
 /*
 BIP44 refers to the accepted common standard to derive non segwit addresses. These addresses always begin with a 1.
@@ -86,7 +86,7 @@ BIP84 refers to the accepted common standard of deriving native segwit addresses
 */
 
 function getAddress(index: number, isChange = false): string {
-  return btcAccount.getAddress(index, isChange);
+  return wallet.getAddress(index, isChange);
 }
 
 // https://cypherpunks-core.github.io/bitcoinbook/ch07.html
@@ -98,12 +98,12 @@ async function send(toAddress: string, amount: number): Promise<string> {
   const utxos = await getUnspentUtxosZpubSelf();
   const txs = await getTxsForUtxos(utxos);
   const { fastestFee } = await estimateFee();
-  const estimatedByteLength = utxos.length * 150 + 100;
+  const estimatedByteLength = utxos.length * 150 + 100; // rough estimate of how much the tx will cost
   const estimatedFee = fastestFee * estimatedByteLength;
   const totalUtxoValue = utxos.reduce<number>((sum: number, u) => sum + u.value, 0);
   const estimatedAmountAndFee = amount + estimatedFee;
   if (totalUtxoValue < estimatedAmountAndFee) {
-    throw new Error(`Insufficient funds. Required: ${amount}, available: ${estimatedAmountAndFee}`);
+    throw new Error(`Insufficient funds. Required (estimate): ${amount}, available: ${estimatedAmountAndFee}`);
   }
 
   // for simplicity, always use all UTXOs
@@ -131,17 +131,21 @@ async function send(toAddress: string, amount: number): Promise<string> {
   const byteLength = getByteLength(psbt.clone(), utxos, amount);
   const fee = byteLength * fastestFee;
   // console.log('calculated fee', fee);
+  const actualAmountAndFee = amount + fee;
+  if (totalUtxoValue < actualAmountAndFee) {
+    throw new Error(`Insufficient funds. Required: ${amount}, available: ${actualAmountAndFee}`);
+  }
 
   // get change back
   const lastUtxo = utxos[utxos.length - 1];
-  const changeAddress = btcAccount.getAddress(lastUtxo.keyIndex, true);
+  const changeAddress = wallet.getAddress(lastUtxo.keyIndex, true);
   psbt.addOutput({
     address: changeAddress,
     value: totalUtxoValue - (amount + fee),
   });
 
   utxos.forEach((utxo, i) => {
-    const keyPair = bjs.ECPair.fromWIF(btcAccount.getPrivateKey(utxo.keyIndex, utxo.keyIsChange), getNetworkFromEnv());
+    const keyPair = bjs.ECPair.fromWIF(wallet.getPrivateKey(utxo.keyIndex, utxo.keyIsChange), getNetworkFromEnv());
     psbt.signInput(i, keyPair);
   });
 
@@ -165,7 +169,7 @@ async function send(toAddress: string, amount: number): Promise<string> {
 
 function getByteLength(psbt: bjs.Psbt, utxos: IUTXO[], amountToSend: number): number {
   const lastUtxo = utxos[utxos.length - 1];
-  const changeAddress = btcAccount.getAddress(lastUtxo.keyIndex, true);
+  const changeAddress = wallet.getAddress(lastUtxo.keyIndex, true);
   const totalUtxoValue = utxos.reduce<number>((sum: number, u) => sum + u.value, 0);
   psbt.addOutput({
     address: changeAddress,
@@ -173,7 +177,7 @@ function getByteLength(psbt: bjs.Psbt, utxos: IUTXO[], amountToSend: number): nu
   });
 
   utxos.forEach((utxo, i) => {
-    const keyPair = bjs.ECPair.fromWIF(btcAccount.getPrivateKey(utxo.keyIndex, utxo.keyIsChange), getNetworkFromEnv());
+    const keyPair = bjs.ECPair.fromWIF(wallet.getPrivateKey(utxo.keyIndex, utxo.keyIsChange), getNetworkFromEnv());
     psbt.signInput(i, keyPair);
   });
 
@@ -196,7 +200,7 @@ async function getTxsForUtxos(utxos: IUTXO[]): Promise<IRawTx[]> {
 }
 
 async function getUnspentUtxosZpubSelf(): Promise<IUTXO[]> {
-  return getUnspentUtxosZpub(btcAccount.getAccountPublicKey());
+  return getUnspentUtxosZpub(wallet.getAccountPublicKey());
 }
 
 async function getUnspentUtxosZpub(zpub: string): Promise<IUTXO[]> {
@@ -280,7 +284,7 @@ async function getTransaction(txHash: string): Promise<IRawTx> {
 }
 
 async function getBalanceZpubSelf(): Promise<IRawBalance> {
-  return getBalanceZpub(btcAccount.getAccountPublicKey());
+  return getBalanceZpub(wallet.getAccountPublicKey());
 }
 
 async function getBalanceZpub(zpub: string): Promise<IRawBalance> {

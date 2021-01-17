@@ -31,6 +31,8 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.production
+.env.test
 
 ### macOS ###
 .DS_Store

@@ -1,5 +1,5 @@
 import { depositSync, depositMonitor } from './services';
-import './services/btcClient';
+import './services/redemption';
 
 async function start(): Promise<void> {
   // await depositSync.init();
