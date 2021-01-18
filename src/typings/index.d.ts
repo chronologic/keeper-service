@@ -1,5 +1,6 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable camelcase */
+declare module 'memory-cache';
 declare module 'electrum-client-js' {
   export default class ElectrumClient {
     constructor(host: string, port: string, protocol: string, options?: any);

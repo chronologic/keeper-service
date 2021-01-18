@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 import VendingMachineABI from '../abi/VendingMachine.json';
-import { ethClient } from '../services';
+import { ethClient } from '../clients';
 import { getVendingMachineAddress } from './depositFactory';
 import { approve } from './tbtcToken';
 

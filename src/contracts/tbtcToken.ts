@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 import ERC20ABI from '../abi/ERC20.json';
-import { ethClient } from '../services';
+import { ethClient } from '../clients';
 import { getTbtcTokenAddress } from './depositFactory';
 
 // eslint-disable-next-line no-underscore-dangle

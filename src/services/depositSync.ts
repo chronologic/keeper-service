@@ -6,18 +6,21 @@ import { Operator } from '../entities/Operator';
 import { DEPOSIT_SYNC_MIN_BLOCK } from '../env';
 import { createLogger } from '../logger';
 import { DepositStatus } from '../types';
-import { bnToNumberBtc } from '../utils/bnToNumber';
-import { bondedEcdsaKeepContractAt, depositContractAt, tbtcSystemContract } from './ethClient';
+import { bnToNumberBtc } from '../utils';
+import { tbtcSystem, depositContractAt, keepContractAt } from '../contracts';
+import TBTCSystemABI from '../abi/TBTCSystem.json';
+import { ethClient } from '../clients';
 
 const logger = createLogger('depositSync');
 
 async function init(): Promise<void> {
-  listenForNewDeposists();
+  await listenForNewDeposists();
   // listenForDepositStateChanges();
   await syncDepositsFromLogs();
 }
 
-function listenForNewDeposists(): void {
+async function listenForNewDeposists(): Promise<void> {
+  const tbtcSystemContract = await tbtcSystem.getContract();
   tbtcSystemContract.on('Funded', async (...args) => {
     const [_d, _tx, _t, event] = args;
     logger.info(`⭐ new Funded event at block ${event.blockNumber}`);
@@ -25,7 +28,8 @@ function listenForNewDeposists(): void {
   });
 }
 
-function listenForDepositStateChanges(): void {
+async function listenForDepositStateChanges(): Promise<void> {
+  const tbtcSystemContract = await tbtcSystem.getContract();
   tbtcSystemContract.on('Funded', async (...args) => {
     console.log('Funded', args);
     // const [_a, _m, _k, _o, _n, event] = args;
@@ -49,8 +53,9 @@ function listenForDepositStateChanges(): void {
   });
 }
 
-async function syncDepositsFromLogs() {
+async function syncDepositsFromLogs(): Promise<void> {
   const lastSyncedBlockNumber = await getLastSyncedBlockNumber();
+  const tbtcSystemContract = await tbtcSystem.getContract();
   logger.info(`🚀 syncing deposits from logs starting from block ${lastSyncedBlockNumber}...`);
   const events = await tbtcSystemContract.queryFilter(tbtcSystemContract.filters.Funded(), lastSyncedBlockNumber);
 
@@ -103,6 +108,7 @@ async function mapAndMaybeStoreFundedEvent(event: Event): Promise<boolean> {
 }
 
 async function mapFundedEventToDeposit(event: Event): Promise<Deposit> {
+  const tbtcSystemContract = await tbtcSystem.getContract();
   const deposit = new Deposit();
   deposit.blockNumber = event.blockNumber;
 
@@ -112,77 +118,31 @@ async function mapFundedEventToDeposit(event: Event): Promise<Deposit> {
   deposit.depositAddress = depositAddress.toLowerCase();
   const depositContract = depositContractAt(depositAddress);
 
-  const [statusCodeBn] = await depositContract.functions.currentState();
-  deposit.statusCode = statusCodeBn.toNumber();
+  deposit.statusCode = await depositContract.getStatusCode();
   deposit.status = DepositStatus[deposit.statusCode];
 
-  const [keepAddress] = await depositContract.functions.keepAddress();
-  deposit.keepAddress = keepAddress.toLowerCase();
-  const keepContract = bondedEcdsaKeepContractAt(deposit.keepAddress);
+  deposit.keepAddress = await depositContract.getKeepAddress();
+  const keepContract = keepContractAt(deposit.keepAddress);
 
-  deposit.bondedEth = await keepContract.functions.checkBondAmount();
+  deposit.bondedEth = await keepContract.getBondedEth();
 
-  const [createdAtBn] = await keepContract.functions.getOpenedTimestamp();
-  const createdAtTimestamp = createdAtBn.toNumber() * 1000;
+  const createdAtTimestamp = await keepContract.getOpenedTimestamp();
   deposit.createdAt = new Date(createdAtTimestamp);
 
-  const [lotSizeSatoshisBn] = await depositContract.functions.lotSizeSatoshis();
-  deposit.lotSizeSatoshis = lotSizeSatoshisBn;
+  deposit.lotSizeSatoshis = await depositContract.getLotSizeSatoshis();
 
-  const [undercollateralizedThresholdPercent] = await depositContract.functions.undercollateralizedThresholdPercent();
-  deposit.undercollateralizedThresholdPercent = undercollateralizedThresholdPercent;
+  deposit.undercollateralizedThresholdPercent = await depositContract.getUndercollateralizedThresholdPercent();
 
-  const [operators] = await keepContract.functions.getMembers();
+  const operators = await keepContract.getMembers();
 
   deposit.operators = operators.map((o: string) => {
     const operator = new Operator();
-    operator.address = o.toLowerCase();
+    operator.address = o;
     return operator;
   });
 
   return deposit;
 }
-
-// async function mapBondedEcdsaKeepCreatedEventToDeposit(event: Event): Promise<Deposit> {
-//   const deposit = new Deposit();
-//   deposit.blockNumber = event.blockNumber;
-
-//   const parsed = bondedEcdsaKeepFactoryContract.interface.parseLog(event);
-//   const [keepAddress, operators, depositAddress]: [string, string[], string] = parsed.args as any;
-//   deposit.depositAddress = depositAddress.toLowerCase();
-//   deposit.keepAddress = keepAddress.toLowerCase();
-
-//   const keepContract = bondedEcdsaKeepContractAt(keepAddress);
-//   const depositContract = depositContractAt(depositAddress);
-
-//   const [statusCodeBn] = await depositContract.functions.currentState();
-//   const statusCode = statusCodeBn.toNumber();
-//   deposit.status = DepositStatus[statusCode];
-
-//   deposit.bondedEth = ethers.BigNumber.from('0');
-//   if (statusCode <= DepositStatus.ACTIVE) {
-//     const [bondedEth] = await keepContract.functions.checkBondAmount();
-//     deposit.bondedEth = bondedEth;
-//   }
-
-//   const [createdAtBn] = await keepContract.functions.getOpenedTimestamp();
-//   const createdAtTimestamp = createdAtBn.toNumber() * 1000;
-//   deposit.createdAt = new Date(createdAtTimestamp);
-
-//   const [lotSizeSatoshisBn] = await depositContract.functions.lotSizeSatoshis();
-//   deposit.lotSizeSatoshis = lotSizeSatoshisBn;
-
-//   const [undercollateralizedThresholdPercent] = await depositContract.functions.undercollateralizedThresholdPercent();
-//   deposit.undercollateralizedThresholdPercent = undercollateralizedThresholdPercent;
-
-//   deposit.operators = operators.map((o) => {
-//     const operator = new Operator();
-//     operator.address = o.toLowerCase();
-//     return operator;
-//   });
-
-//   return deposit;
-// }
 
 async function storeDeposit(deposit: Deposit): Promise<Deposit> {
   const connection = getConnection();
@@ -215,64 +175,6 @@ async function storeOperator(operator: Operator): Promise<Operator> {
 
   return operatorDb;
 }
-
-// async function syncDeposits() {
-//   const lastSyncedId = await getLastSyncedId();
-//   const depositCount = await getDepositCount();
-//   const diff = depositCount - lastSyncedId;
-
-//   await syncDeposit(5);
-//   // for (let id = lastSyncedId + 1; id < depositCount; id++) {
-//   //   await syncDeposit(id);
-//   // }
-// }
-
-// async function getLastSyncedId(): Promise<number> {
-//   const connection = getConnection();
-//   const [{ max }] = await connection
-//     .createQueryBuilder()
-//     .select('MAX("onChainId") as max')
-//     .from(Deposit, 'd')
-//     .execute();
-//   logger.debug(`last synced deposit id: ${max}`);
-
-//   return max || 0;
-// }
-
-// async function getDepositCount(): Promise<number> {
-//   const [resBn] = await bondedEcdsaKeepFactoryContract.functions.getKeepCount();
-//   const num = resBn.toNumber();
-//   logger.debug(`deposit count: ${num}`);
-
-//   return num;
-// }
-
-// async function syncDeposit(id: number): Promise<void> {
-//   const [bondedEcdsaKeepAddress] = await bondedEcdsaKeepFactoryContract.functions.getKeepAtIndex(id);
-//   const bondedEcdsaKeepContract = bondedEcdsaKeepContractAt(bondedEcdsaKeepAddress);
-//   const [members] = await bondedEcdsaKeepContract.functions.getMembers();
-//   console.log(members);
-//   const [bondAmountBn] = await bondedEcdsaKeepContract.functions.checkBondAmount();
-//   console.log(bondAmountBn.toString());
-//   const [depositAddress] = await bondedEcdsaKeepContract.functions.getOwner();
-//   console.log(depositAddress);
-//   const [createdAtBn] = await bondedEcdsaKeepContract.functions.getOpenedTimestamp();
-//   const createdAtTimestamp = createdAtBn.toNumber() * 1000;
-//   console.log(createdAtTimestamp);
-//   const depositContract = depositContractAt(depositAddress);
-//   const [statusCodeBn] = await depositContract.functions.currentState();
-//   const statusCode = statusCodeBn.toNumber();
-//   const status = DepositStatus[statusCode];
-//   console.log(statusCode, status);
-//   const [lotSizeSatoshisBn] = await depositContract.functions.lotSizeSatoshis();
-//   console.log(lotSizeSatoshisBn.toString());
-//   const [undercollateralizedThresholdPercent] = await depositContract.functions.undercollateralizedThresholdPercent();
-//   console.log(undercollateralizedThresholdPercent);
-
-//   // await storeDepositAndOperators();
-// }
-
-// async function storeDepositAndOperators();
 
 export default {
   init,

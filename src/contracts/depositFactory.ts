@@ -2,31 +2,27 @@ import { ethers } from 'ethers';
 
 import DepositFactoryABI from '../abi/DepositFactory.json';
 import { DEPOSIT_FACTORY_ADDRESS } from '../env';
-import { ethClient } from '../services';
+import { ethClient } from '../clients';
 
 const contract = new ethers.Contract(DEPOSIT_FACTORY_ADDRESS, DepositFactoryABI, ethClient.httpProvider);
 
-const addresses: {
+const values: {
   [key: string]: string;
 } = {};
 
 export async function getTbtcSystemAddress(): Promise<string> {
-  const key = 'tbtcSystem';
-  addresses[key] = addresses[key] || (await contract.functions[key]());
-
-  return addresses[key];
+  return getValueForKey('tbtcSystem');
 }
 
 export async function getTbtcTokenAddress(): Promise<string> {
-  const key = 'tbtcToken';
-  addresses[key] = addresses[key] || (await contract.functions[key]());
-
-  return addresses[key];
+  return getValueForKey('tbtcToken');
 }
 
 export async function getVendingMachineAddress(): Promise<string> {
-  const key = 'vendingMachineAddress';
-  addresses[key] = addresses[key] || (await contract.functions[key]());
+  return getValueForKey('vendingMachineAddress');
+}
 
-  return addresses[key];
+async function getValueForKey(key: string): Promise<any> {
+  values[key] = values[key] || (await contract.functions[key]())[0];
+  return values[key];
 }

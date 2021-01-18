@@ -12,7 +12,7 @@ import {
 
 import { bigNumberColumnOptions, lowercaseTransformer } from './shared';
 import { Operator } from './Operator';
-import { DepositOperation } from './DepositOperation';
+import { DepositOperationLog } from './DepositOperationLog';
 
 @Entity()
 export class Deposit {
@@ -22,8 +22,8 @@ export class Deposit {
   @ManyToMany((_type) => Operator, (operator) => operator.deposits)
   operators: Operator[];
 
-  @OneToMany((_type) => DepositOperation, (depositOperation) => depositOperation.deposit, { nullable: true })
-  depositOperations: DepositOperation[];
+  @OneToMany((_type) => DepositOperationLog, (depositOperation) => depositOperation.deposit, { nullable: true })
+  depositOperations: DepositOperationLog[];
 
   @Index({ unique: true })
   @Column({ transformer: lowercaseTransformer })
@@ -45,6 +45,9 @@ export class Deposit {
 
   @Column({ ...bigNumberColumnOptions, nullable: true })
   redemptionCostEthEquivalent: BigNumber;
+
+  @Column({ type: 'money', nullable: true })
+  redemptionCostUsdEquivalent: number;
 
   @Column({ type: 'smallint' })
   undercollateralizedThresholdPercent: number;

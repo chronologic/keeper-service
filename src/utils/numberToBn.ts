@@ -10,5 +10,9 @@ export function numberToBnBtc(num: number): BigNumber {
 }
 
 export function numberToBn(num: number, decimals = ETH_DECIMALS): BigNumber {
-  return BigNumber.from(num).mul(BigNumber.from(10).pow(decimals));
+  const numStr = num.toString();
+  const numDecimals = (numStr.split('.')[1] || '').length;
+  const numStrClean = numStr.replace('.', '');
+
+  return BigNumber.from(numStrClean).mul(BigNumber.from(10).pow(decimals - numDecimals));
 }

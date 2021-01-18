@@ -5,12 +5,15 @@ import { bigNumberColumnOptions, lowercaseTransformer } from './shared';
 import { Deposit } from './Deposit';
 
 @Entity()
-export class DepositOperation {
+export class DepositOperationLog {
   @PrimaryGeneratedColumn()
   id: number;
 
   @ManyToOne((_type) => Deposit, { onDelete: 'CASCADE' })
   deposit: Deposit;
+
+  @Column()
+  depositId: number;
 
   @Index()
   @Column({ length: 50 })
@@ -19,13 +22,12 @@ export class DepositOperation {
   @Column({ length: 10 })
   blockchainType: string;
 
-  @Column({ length: 100, transformer: lowercaseTransformer })
+  @Column({ length: 100, transformer: lowercaseTransformer, nullable: true })
   fromAddress: string;
 
-  @Column({ length: 100, transformer: lowercaseTransformer })
+  @Column({ length: 100, transformer: lowercaseTransformer, nullable: true })
   toAddress: string;
 
-  @Index({ unique: true })
   @Column({ transformer: lowercaseTransformer })
   txHash: string;
 
@@ -35,12 +37,8 @@ export class DepositOperation {
   @Column({ type: 'money', nullable: true })
   txCostUsdEquivalent: number;
 
-  @Column({ type: 'boolean', default: false })
-  confirmed: boolean;
-
-  @Index()
-  @Column({ length: 40 })
-  status: string;
+  @Column({ nullable: true })
+  message: string;
 
   @CreateDateColumn()
   createDate: Date;

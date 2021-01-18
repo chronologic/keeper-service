@@ -1,23 +1,50 @@
 import { ethers } from 'ethers';
 
 import DepositABI from '../abi/Deposit.json';
-import { ethClient } from '../services';
+import { ethClient } from '../clients';
+import { IDepositContract } from '../types';
+import { satoshiToWei } from '../utils';
 
-// TODO: call getRedemptionTbtcRequirement if 'inVendingMachine' (see tbtc.js)
-export async function getOwnerRedemptionTbtcRequirementAt(address: string): Promise<ethers.BigNumber> {
-  const contract = await getContractAt(address);
-  const [fee] = await contract.functions.getOwnerRedemptionTbtcRequirement(ethClient.getMainAddress());
+export default function getContractAt(address: string): IDepositContract {
+  const contract = new ethers.Contract(address, DepositABI, ethClient.getMainWallet());
 
-  return fee;
-}
+  return {
+    getKeepAddress,
+    getLotSizeSatoshis,
+    getStatusCode,
+    getCollateralizationPercent,
+    getUndercollateralizedThresholdPercent,
+    getRedemptionCost,
+    getRedemptionFee,
+  };
 
-export async function getSignerFeeTbtcAt(address: string): Promise<ethers.BigNumber> {
-  const contract = await getContractAt(address);
-  const [fee] = await contract.functions.signerFeeTbtc();
-
-  return fee;
-}
-
-async function getContractAt(address: string): Promise<ethers.Contract> {
-  return new ethers.Contract(address, DepositABI, ethClient.getMainWallet());
+  async function getKeepAddress() {
+    const [keepAddress] = await contract.functions.keepAddress();
+    return keepAddress.toLowerCase();
+  }
+  async function getLotSizeSatoshis() {
+    const [lotSize] = await contract.functions.lotSizeSatoshis();
+    return lotSize;
+  }
+  async function getStatusCode() {
+    const [state] = await contract.functions.currentState();
+    return state.toNumber();
+  }
+  async function getCollateralizationPercent() {
+    const [collateralization] = await contract.functions.collateralizationPercentage();
+    return collateralization;
+  }
+  async function getUndercollateralizedThresholdPercent() {
+    const [threshold] = await contract.functions.undercollateralizedThresholdPercent();
+    return threshold;
+  }
+  async function getRedemptionCost() {
+    const redemptionFee = await getRedemptionFee();
+    const lotSizeSatoshis = await getLotSizeSatoshis();
+    return satoshiToWei(lotSizeSatoshis).add(redemptionFee);
+  }
+  async function getRedemptionFee() {
+    const [fee] = await contract.functions.getOwnerRedemptionTbtcRequirement(ethClient.getMainAddress());
+    return fee;
+  }
 }

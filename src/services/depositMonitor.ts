@@ -5,10 +5,9 @@ import { COLLATERAL_BUFFER_PERCENT, COLLATERAL_CHECK_INTERVAL_MINUTES, MIN_LOT_S
 import { Deposit } from '../entities/Deposit';
 import { createLogger } from '../logger';
 import { DepositStatus } from '../types';
-import { getEthToBtcRatio } from './priceFeed';
-import { bnToNumberBtc, bnToNumberEth } from '../utils/bnToNumber';
-import { numberToBnBtc } from '../utils/numberToBn';
-import { depositContractAt } from './ethClient';
+import { depositContractAt } from '../contracts';
+import { bnToNumberBtc, bnToNumberEth, numberToBnBtc } from '../utils';
+import { fetchEthToBtcRatio } from './priceFeed';
 
 const logger = createLogger('depositMonitor');
 const minLotSize = numberToBnBtc(MIN_LOT_SIZE_BTC).toString();
@@ -27,7 +26,7 @@ async function checkDepositsAndScheduleNextRun(): Promise<void> {
 async function checkDeposits(): Promise<void> {
   logger.info('🚀 checking deposits collateral...');
   const deposits = await getDepositsToCheck();
-  const ethToBtcRatio = await getEthToBtcRatio();
+  const ethToBtcRatio = await fetchEthToBtcRatio();
 
   const depositsToRedeem = deposits.filter((d) => shouldRedeemDeposit(d, ethToBtcRatio));
 
@@ -43,7 +42,7 @@ async function checkDeposits(): Promise<void> {
   }
 
   logger.info(
-    `🎉 checked ${deposits.length} collateral. Attempted to mark ${depositsToRedeem.length} for redemption. marked ${marked} for redemption, skipped ${skipped}`
+    `🎉 checked ${deposits.length} collateral. Attempted to mark ${depositsToRedeem.length} for redemption. Marked ${marked} for redemption, skipped ${skipped}`
   );
 }
 
@@ -81,10 +80,9 @@ async function tryMarkDepositForRedemption(deposit: Deposit): Promise<boolean> {
 }
 
 async function checkIsInRedeemableState(deposit: Deposit): Promise<boolean> {
-  const depositContract = depositContractAt(deposit.depositAddress);
-  const statusCode = await depositContract.functions.currentState();
+  const statusCode = await depositContractAt(deposit.depositAddress).getStatusCode();
 
-  if (redeemableStatuses.includes(statusCode)) {
+  if (redeemableStatuses.includes(DepositStatus[statusCode])) {
     return true;
   }
 
@@ -93,7 +91,7 @@ async function checkIsInRedeemableState(deposit: Deposit): Promise<boolean> {
 }
 
 async function markDepositForRedemption(deposit: Deposit): Promise<void> {
-  console.log('lol');
+  await updateDepositStatus(deposit, DepositStatus.KEEPER_QUEUED_FOR_REDEMPTION);
 }
 
 async function updateDepositStatus(deposit: Deposit, statusCode: number): Promise<void> {

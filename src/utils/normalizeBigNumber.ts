@@ -1,7 +1,7 @@
-import { BigNumber } from 'ethers';
+import { BigNumber, BigNumberish } from 'ethers';
 import { BTC_DECIMALS, ETH_DECIMALS } from '../constants';
 
-export function satoshiToWei(satoshi: BigNumber | string | number): BigNumber {
+export function satoshiToWei(satoshi: BigNumberish): BigNumber {
   return normalizeBigNumber(BigNumber.from(satoshi), BTC_DECIMALS, ETH_DECIMALS);
 }
 

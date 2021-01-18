@@ -12,6 +12,9 @@ export class Payment {
   @ManyToOne((_type) => User, { onDelete: 'CASCADE' })
   user: User;
 
+  @Column({ nullable: true })
+  userId: number;
+
   @Index({ unique: true })
   @Column({ transformer: lowercaseTransformer })
   txHash: string;
