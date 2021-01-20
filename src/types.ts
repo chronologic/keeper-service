@@ -34,24 +34,11 @@ export enum DepositStatus {
 
 export enum DepositOperationLogType {
   // redeeming
-  REDEEM_APPROVE_TBTC_BROADCASTED = 'REDEEM_APPROVE_TBTC_BROADCASTED', // TODO: approve once?
-  REDEEM_APPROVE_TBTC_CONFIRMED = 'REDEEM_APPROVE_TBTC_CONFIRMED',
-  REDEEM_APPROVE_TBTC_ERROR = 'REDEEM_APPROVE_TBTC_ERROR',
-
-  REDEEM_TBTC_TO_BTC_BROADCASTED = 'REDEEM_TBTC_TO_BTC_BROADCASTED',
-  REDEEM_TBTC_TO_BTC_CONFIRMED = 'REDEEM_TBTC_TO_BTC_CONFIRMED',
-  REDEEM_TBTC_TO_BTC_ERROR = 'REDEEM_TBTC_TO_BTC_ERROR',
-
-  REDEEM_PROVIDE_REDEMPTION_SIG_BROADCASTED = 'REDEEM_PROVIDE_REDEMPTION_SIG_BROADCASTED',
-  REDEEM_PROVIDE_REDEMPTION_SIG_CONFIRMED = 'REDEEM_PROVIDE_REDEMPTION_SIG_CONFIRMED',
-  REDEEM_PROVIDE_REDEMPTION_SIG_ERROR = 'REDEEM_PROVIDE_REDEMPTION_SIG_ERROR',
-
-  REDEEM_BTC_RECEPTION_CONFIRMED = 'REDEEM_BTC_RECEPTION_CONFIRMED',
-  REDEEM_BTC_RECEPTION_ERROR = 'REDEEM_BTC_RECEPTION_ERROR',
-
-  REDEEM_PROVIDE_REDEMPTION_PROOF_BROADCASTED = 'REDEEM_PROVIDE_REDEMPTION_PROOF_BROADCASTED',
-  REDEEM_PROVIDE_REDEMPTION_PROOF_CONFIRMED = 'REDEEM_PROVIDE_REDEMPTION_PROOF_CONFIRMED',
-  REDEEM_PROVIDE_REDEMPTION_PROOF_ERROR = 'REDEEM_PROVIDE_REDEMPTION_PROOF_ERROR',
+  REDEEM_APPROVE_TBTC = 'REDEEM_APPROVE_TBTC', // TODO: approve once?
+  REDEEM_REDEMPTION_REQUEST = 'REDEEM_REDEMPTION_REQUEST', // tbtcToBtc
+  REDEEM_PROVIDE_REDEMPTION_SIG = 'REDEEM_PROVIDE_REDEMPTION_SIG',
+  REDEEM_BTC_RECEPTION = 'REDEEM_BTC_RECEPTION',
+  REDEEM_PROVIDE_REDEMPTION_PROOF = 'REDEEM_PROVIDE_REDEMPTION_PROOF',
 
   // minting
   MINT_START = 'MINT_START',
@@ -64,15 +51,15 @@ export enum DepositOperationLogType {
   MINT_TBTC_RECEPTION = 'MINT_TBTC_RECEPTION',
 }
 
-export enum DepositOperationStatus {
-  START = 'START',
-  CONFIRMING = 'CONFIRMING',
-  CONFIRMED = 'CONFIRMED',
-  ERROR = 'ERROR',
+export enum DepositOperationLogDirection {
+  IN = 'IN',
+  OUT = 'OUT',
 }
 
-export enum PubSubTopic {
-  REDEEM_START = 'REDEEM_START',
+export enum DepositOperationLogStatus {
+  BROADCASTED = 'BROADCASTED',
+  CONFIRMED = 'CONFIRMED',
+  ERROR = 'ERROR',
 }
 
 export enum BlockchainType {
@@ -88,4 +75,22 @@ export interface IDepositContract {
   getUndercollateralizedThresholdPercent(): Promise<number>;
   getRedemptionCost(): Promise<BigNumber>;
   getRedemptionFee(): Promise<BigNumber>;
+  getUtxoValue(): Promise<number>;
+  provideRedemptionSignature(v: string, r: string, s: string): Promise<ITx>;
+}
+
+export interface ITx {
+  nonce: number;
+  gasPrice: BigNumber;
+  gasLimit: BigNumber;
+  to: string;
+  value: BigNumber;
+  data: string;
+  chainId: number;
+  v: number;
+  r: string;
+  s: string;
+  from: string;
+  hash: string;
+  wait: [Function];
 }

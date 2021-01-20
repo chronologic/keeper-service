@@ -18,7 +18,7 @@ const logTransports = [
   }),
   new transports.Console({
     level: 'debug',
-    format: format.prettyPrint(),
+    format: format.prettyPrint({ colorize: true }),
   }),
   new transports.Console({
     level: 'info',
@@ -26,14 +26,14 @@ const logTransports = [
   }),
 ];
 
-export function createLogger(serviceName: string): Logger {
+export function createLogger(source: string): Logger {
   return createWinstonLogger({
     format: format.combine(format.timestamp()),
     transports: logTransports,
-    defaultMeta: { service: serviceName },
+    defaultMeta: { source },
   });
 }
 
-const logger = createLogger('service');
+const logger = createLogger('logger');
 
 export default logger;

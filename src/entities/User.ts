@@ -18,12 +18,16 @@ export class User {
 
   @Index({ unique: true })
   @Column({ transformer: lowercaseTransformer })
+  address: string;
+
+  @Index({ unique: true })
+  @Column({ transformer: lowercaseTransformer, nullable: true })
   paymentAddressEth: string;
 
-  @Column(bigNumberColumnOptions)
+  @Column({ ...bigNumberColumnOptions, nullable: true })
   balanceEth: BigNumber;
 
-  @Column({ transformer: lowercaseTransformer })
+  @Column({ transformer: lowercaseTransformer, nullable: true })
   email: string;
 
   @CreateDateColumn()

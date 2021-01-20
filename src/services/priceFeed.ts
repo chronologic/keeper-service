@@ -30,6 +30,7 @@ export async function fetchWeiToUsdPrice(wei: BigNumberish): Promise<number> {
   const ethToUsd = await fetchEthToUsdRatio();
   const ratioWei = numberToBnEth(ethToUsd);
   const weiInUsd = BigNumber.from(wei).mul(ratioWei).div(BigNumber.from(10).pow(ETH_DECIMALS));
+  console.log(ethToUsd, BigNumber.from(wei).toString(), ratioWei.toString(), weiInUsd.toString());
   return bnToNumberEth(weiInUsd);
 }
 

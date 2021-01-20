@@ -6,6 +6,8 @@ import fetch from 'node-fetch';
 
 import { ELECTRUMX_HOST, ELECTRUMX_PORT, ELECTRUMX_PROTOCOL, ELECTRUMX_NETWORK, BTC_ZPRV } from '../env';
 import { createLogger } from '../logger';
+import { BigNumber } from 'ethers';
+import { getAddressAtIndex } from './ethClient';
 
 const logger = createLogger('btcClient');
 interface IRawTx {
@@ -75,7 +77,8 @@ interface IFeeEstimate {
 }
 
 const MAX_ADDRESS_GAP = 10;
-const AMOUNT_MULTIPLIER = 100000000;
+const NETWORK = getNetworkFromEnv();
+const TEST_ADDRESS = getAddressAtIndex(999999); // "random" address for fee estimation
 // eslint-disable-next-line new-cap
 const wallet = new bip84.fromZPrv(BTC_ZPRV);
 
@@ -93,7 +96,7 @@ function getAddress(index: number, isChange = false): string {
 // Pay-to-Witness-Public-Key-Hash (P2WPKH)
 async function send(toAddress: string, amount: number): Promise<string> {
   // PSBT = Partially Signed Bitcoin Transaction https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
-  const psbt = new bjs.Psbt({ network: getNetworkFromEnv() });
+  const psbt = new bjs.Psbt({ network: NETWORK });
 
   const utxos = await getUnspentUtxosZpubSelf();
   const txs = await getTxsForUtxos(utxos);
@@ -130,7 +133,6 @@ async function send(toAddress: string, amount: number): Promise<string> {
 
   const byteLength = getByteLength(psbt.clone(), utxos, amount);
   const fee = byteLength * fastestFee;
-  // console.log('calculated fee', fee);
   const actualAmountAndFee = amount + fee;
   if (totalUtxoValue < actualAmountAndFee) {
     throw new Error(`Insufficient funds. Required: ${amount}, available: ${actualAmountAndFee}`);
@@ -145,26 +147,51 @@ async function send(toAddress: string, amount: number): Promise<string> {
   });
 
   utxos.forEach((utxo, i) => {
-    const keyPair = bjs.ECPair.fromWIF(wallet.getPrivateKey(utxo.keyIndex, utxo.keyIsChange), getNetworkFromEnv());
+    const keyPair = bjs.ECPair.fromWIF(wallet.getPrivateKey(utxo.keyIndex, utxo.keyIsChange), NETWORK);
     psbt.signInput(i, keyPair);
   });
 
-  // console.log('valid signature: ', psbt.validateSignaturesOfAllInputs());
   psbt.finalizeAllInputs();
   const rawHex = psbt.extractTransaction().toHex();
-  // console.log(rawHex);
-  // console.log('amount', amount);
-  // console.log('totalUtxos', totalUtxoValue);
-  // console.log('fee', psbt.getFee());
-  // console.log('feeRate', psbt.getFeeRate());
-  // console.log('vsize', psbt.extractTransaction().virtualSize());
-  // console.log('blength', psbt.extractTransaction().byteLength());
-  // console.log('blength allow witness', psbt.extractTransaction().byteLength(true));
-  // console.log(txs);
 
   const txHash = await requestAndClose((client) => client.blockchain_transaction_broadcast(rawHex));
 
   return txHash;
+}
+
+// TODO: this is mostly duplicated code, try to extract common code from this and 'send()'
+async function estimateSendFee(amount: number, toAddress = TEST_ADDRESS): Promise<number> {
+  // PSBT = Partially Signed Bitcoin Transaction https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
+  const psbt = new bjs.Psbt({ network: NETWORK });
+
+  const utxos = await getUnspentUtxosZpubSelf();
+  const txs = await getTxsForUtxos(utxos);
+  const { fastestFee } = await estimateFee();
+
+  // for simplicity, always use all UTXOs
+  txs.forEach((tx, i) => {
+    const utxo = utxos[i];
+    const txFromHex = bjs.Transaction.fromHex(tx.hex);
+    const witnessOut = txFromHex.outs[utxo.tx_pos];
+
+    psbt.addInput({
+      hash: utxo.tx_hash,
+      index: utxo.tx_pos,
+      witnessUtxo: {
+        script: witnessOut.script,
+        value: witnessOut.value,
+      },
+    });
+  });
+
+  // actual payment
+  psbt.addOutput({
+    address: toAddress,
+    value: amount,
+  });
+
+  const byteLength = getByteLength(psbt.clone(), utxos, amount);
+  return byteLength * fastestFee;
 }
 
 function getByteLength(psbt: bjs.Psbt, utxos: IUTXO[], amountToSend: number): number {
@@ -177,7 +204,7 @@ function getByteLength(psbt: bjs.Psbt, utxos: IUTXO[], amountToSend: number): nu
   });
 
   utxos.forEach((utxo, i) => {
-    const keyPair = bjs.ECPair.fromWIF(wallet.getPrivateKey(utxo.keyIndex, utxo.keyIsChange), getNetworkFromEnv());
+    const keyPair = bjs.ECPair.fromWIF(wallet.getPrivateKey(utxo.keyIndex, utxo.keyIsChange), NETWORK);
     psbt.signInput(i, keyPair);
   });
 
@@ -245,13 +272,6 @@ async function getUnspentUtxosZpub(zpub: string): Promise<IUTXO[]> {
   return allUtxos;
 }
 
-async function getUnspentUtxos(address: string): Promise<IRawUTXO[]> {
-  const scriptHash = addressToScriptHash(address);
-  const rawUtxos = await requestAndClose((client) => client.blockchain_scripthash_listunspent(scriptHash));
-
-  return rawUtxos;
-}
-
 async function waitForTransactionToAddress(address: string): Promise<any> {
   const scriptHash = addressToScriptHash(address);
   const tx = await requestAndClose((client) => client.blockchain_scripthash_subscribe(scriptHash));
@@ -310,7 +330,6 @@ async function getBalanceZpub(zpub: string): Promise<IRawBalance> {
       totalBalance.unconfirmed += balance.unconfirmed;
 
       const history: IRawHitoryItem[] = await client.blockchain_scripthash_getHistory(scriptHash);
-      // console.log('history', history);
 
       if (history.length === 0 && !isChange) {
         currentAddressGap += 1;
@@ -336,8 +355,11 @@ async function getBalance(address: string): Promise<IRawBalance> {
 }
 
 function addressToScriptHash(address: string): string {
-  const script = bjs.address.toOutputScript(address, getNetworkFromEnv());
-  return Buffer.from(bjs.crypto.sha256(script).reverse()).toString('hex');
+  return Buffer.from(bjs.crypto.sha256(addressToScript(address)).reverse()).toString('hex');
+}
+
+function addressToScript(address: string): Buffer {
+  return bjs.address.toOutputScript(address, NETWORK);
 }
 
 function getNetworkFromEnv(): bjs.networks.Network {
@@ -376,7 +398,7 @@ async function estimateFee(): Promise<IFeeEstimate> {
     halfOurFee: 1,
     hourFree: 1,
   };
-  if (getNetworkFromEnv() === bjs.networks.bitcoin) {
+  if (NETWORK === bjs.networks.bitcoin) {
     logger.debug('fetching btc fee estimate from bitcoinfees...');
     const res = await fetch('https://bitcoinfees.earn.com/api/v1/fees/recommended');
     estimate = await res.json();
@@ -409,8 +431,9 @@ async function estimateFee(): Promise<IFeeEstimate> {
 //   console.log(utxos);
 // });
 
-export default {
+export {
   send,
+  estimateSendFee,
   waitForTransactionToAddress,
   waitForConfirmations,
   getAddress,
@@ -418,4 +441,5 @@ export default {
   getBalance,
   getBalanceZpub,
   getBalanceZpubSelf,
+  addressToScript,
 };

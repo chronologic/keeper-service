@@ -2,24 +2,25 @@ import { ethers } from 'ethers';
 
 import VendingMachineABI from '../abi/VendingMachine.json';
 import { ethClient } from '../clients';
+import { ITx } from '../types';
 import { getVendingMachineAddress } from './depositFactory';
 import { approve } from './tbtcToken';
 
 // eslint-disable-next-line no-underscore-dangle
 let _contract: ethers.Contract;
 
-export async function approveSpendingTbtc(amount: ethers.BigNumber): Promise<string> {
+export async function approveSpendingTbtc(amount: ethers.BigNumber): Promise<ITx> {
   return approve(await getVendingMachineAddress(), amount);
 }
 
 export async function tbtcToBtc(
   depositAddress: string,
-  outputValueBytes: any,
-  redeemerOutputScript: any
-): Promise<string> {
+  outputValueBytes: Buffer,
+  redeemerOutputScript: string
+): Promise<ITx> {
   const contract = await getContract();
 
-  return contract.functions.tbtcToBtc(depositAddress, outputValueBytes, redeemerOutputScript);
+  return contract.functions.tbtcToBtc(depositAddress, outputValueBytes, redeemerOutputScript, { gasLimit: 1_000_000 });
 }
 
 async function getContract(): Promise<ethers.Contract> {

@@ -46,11 +46,18 @@ export class Deposit {
   @Column({ ...bigNumberColumnOptions, nullable: true })
   redemptionCostEthEquivalent: BigNumber;
 
-  @Column({ type: 'money', nullable: true })
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
   redemptionCostUsdEquivalent: number;
 
   @Column({ type: 'smallint' })
   undercollateralizedThresholdPercent: number;
+
+  @Column({ length: 100, nullable: true })
+  redemptionAddress: string;
+
+  @Index()
+  @Column({ type: 'int', nullable: true })
+  redemptionAddressIndex: number;
 
   @Index()
   @Column({ length: 40 })

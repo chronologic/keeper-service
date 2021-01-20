@@ -16,6 +16,8 @@ export default function getContractAt(address: string): IDepositContract {
     getUndercollateralizedThresholdPercent,
     getRedemptionCost,
     getRedemptionFee,
+    getUtxoValue,
+    provideRedemptionSignature,
   };
 
   async function getKeepAddress() {
@@ -46,5 +48,12 @@ export default function getContractAt(address: string): IDepositContract {
   async function getRedemptionFee() {
     const [fee] = await contract.functions.getOwnerRedemptionTbtcRequirement(ethClient.getMainAddress());
     return fee;
+  }
+  async function getUtxoValue() {
+    const [utxoVal] = await contract.functions.utxoValue();
+    return utxoVal.toNumber();
+  }
+  async function provideRedemptionSignature(v: string, r: string, s: string) {
+    return contract.functions.provideRedemptionSignature(v, r, s);
   }
 }
