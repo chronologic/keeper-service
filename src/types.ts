@@ -76,10 +76,11 @@ export interface IDepositContract {
   getRedemptionCost(): Promise<BigNumber>;
   getRedemptionFee(): Promise<BigNumber>;
   getUtxoValue(): Promise<number>;
-  provideRedemptionSignature(v: string, r: string, s: string): Promise<ITx>;
+  provideRedemptionSignature(v: string, r: string, s: string): Promise<IEthTx>;
+  provideRedemptionProof(proof: IFundingProof): Promise<IEthTx>;
 }
 
-export interface ITx {
+export interface IEthTx {
   nonce: number;
   gasPrice: BigNumber;
   gasLimit: BigNumber;
@@ -93,4 +94,22 @@ export interface ITx {
   from: string;
   hash: string;
   wait: [Function];
+}
+
+export interface ElectrumConfig {
+  server: string;
+  port: string;
+  protocol: string;
+  options?: any;
+}
+
+export interface IFundingProof {
+  version: Buffer;
+  inputVector: Buffer;
+  outputVector: Buffer;
+  locktime: Buffer;
+  outputPosition: number;
+  merkleProof: Buffer;
+  indexInBlock: number;
+  bitcoinHeaders: Buffer;
 }

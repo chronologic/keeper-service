@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 import { ethClient } from '../clients';
-import { IDepositContract } from '../types';
+import { IDepositContract, IFundingProof } from '../types';
 import { satoshiToWei } from '../utils';
 import getAbiAndAddress from './getAbiAndAddress';
 
@@ -20,6 +20,7 @@ export default function getContractAt(address: string): IDepositContract {
     getRedemptionFee,
     getUtxoValue,
     provideRedemptionSignature,
+    provideRedemptionProof,
   };
 
   async function getKeepAddress() {
@@ -48,7 +49,7 @@ export default function getContractAt(address: string): IDepositContract {
     return satoshiToWei(lotSizeSatoshis).add(redemptionFee);
   }
   async function getRedemptionFee() {
-    const [fee] = await contract.functions.getOwnerRedemptionTbtcRequirement(ethClient.getMainAddress());
+    const [fee] = await contract.functions.getOwnerRedemptionTbtcRequirement(ethClient.defaultWallet.address);
     return fee;
   }
   async function getUtxoValue() {
@@ -57,5 +58,25 @@ export default function getContractAt(address: string): IDepositContract {
   }
   async function provideRedemptionSignature(v: string, r: string, s: string) {
     return contract.functions.provideRedemptionSignature(v, r, s);
+  }
+  async function provideRedemptionProof({
+    version,
+    inputVector,
+    outputVector,
+    locktime,
+    merkleProof,
+    indexInBlock,
+    bitcoinHeaders,
+  }: IFundingProof) {
+    return contract.functions.provideRedemptionProof(
+      version,
+      inputVector,
+      outputVector,
+      locktime,
+      merkleProof,
+      indexInBlock,
+      bitcoinHeaders,
+      { gasLimit: 1_000_000 }
+    );
   }
 }

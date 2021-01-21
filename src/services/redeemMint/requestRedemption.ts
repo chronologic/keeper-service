@@ -9,7 +9,7 @@ import {
   DepositOperationLogStatus,
   DepositOperationLogType,
   IDepositContract,
-  ITx,
+  IEthTx,
 } from '../../types';
 import { createLogger } from '../../logger';
 import { DepositOperationLog } from '../../entities/DepositOperationLog';
@@ -22,10 +22,11 @@ import {
   storeOperationLog,
 } from './operationLogHelper';
 import { ETH_MIN_CONFIRMATIONS } from '../../constants';
+import { getDeposit } from './depositHelper';
 
 const logger = createLogger('requestRedemption');
 
-export async function ensureRedemptionRequested(deposit: Deposit, depositContract: IDepositContract): Promise<ITx> {
+export async function ensureRedemptionRequested(deposit: Deposit, depositContract: IDepositContract): Promise<Deposit> {
   logger.info(`Ensuring redemption requested for deposit ${deposit.depositAddress}...`);
   try {
     // TODO: double check status on blockchain - ACTIVE / COURTESY_CALL
@@ -34,7 +35,7 @@ export async function ensureRedemptionRequested(deposit: Deposit, depositContrac
       logger.info(
         `Redemption request is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`
       );
-      return;
+      return getDeposit(deposit.depositAddress);
     }
 
     const broadcastedLog = getOperationLogInStatus(logs, DepositOperationLogStatus.BROADCASTED);
@@ -43,7 +44,7 @@ export async function ensureRedemptionRequested(deposit: Deposit, depositContrac
         `Redemption request is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
       );
       await confirmRedemptionRequested(deposit, broadcastedLog.txHash);
-      return;
+      return getDeposit(deposit.depositAddress);
     }
 
     const tx = await requestRedemption(deposit, depositContract);
@@ -55,6 +56,7 @@ export async function ensureRedemptionRequested(deposit: Deposit, depositContrac
   } finally {
     // TODO: update total redemption cost
   }
+  return getDeposit(deposit.depositAddress);
 }
 
 async function confirmRedemptionRequested(deposit: Deposit, txHash: string): Promise<void> {
@@ -65,34 +67,31 @@ async function confirmRedemptionRequested(deposit: Deposit, txHash: string): Pro
   logger.info(`Got confirmations for redemption request for deposit ${deposit.depositAddress}.`);
   logger.debug(JSON.stringify(txReceipt, null, 2));
 
-  const redemptionCostEth = await depositContractAt(deposit.depositAddress).getRedemptionCost();
-  const redemptionCostUsd = await fetchWeiToUsdPrice(redemptionCostEth);
+  const redemptionFeeEth = await depositContractAt(deposit.depositAddress).getRedemptionFee();
+  const redemptionFeeUsd = await fetchWeiToUsdPrice(redemptionFeeEth);
   const log = new DepositOperationLog();
   log.txHash = txHash;
-  log.fromAddress = ethClient.getMainAddress();
+  log.fromAddress = ethClient.defaultWallet.address;
   log.toAddress = vendingMachine.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_REDEMPTION_REQUEST;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.CONFIRMED;
   log.blockchainType = BlockchainType.ETHEREUM;
-  log.txCostEthEquivalent = txReceipt.gasUsed.add(redemptionCostEth);
+  log.txCostEthEquivalent = txReceipt.gasUsed.add(redemptionFeeEth);
   const txUsdCost = await fetchWeiToUsdPrice(txReceipt.gasUsed);
-  log.txCostUsdEquivalent = txUsdCost + redemptionCostUsd;
+  log.txCostUsdEquivalent = txUsdCost + redemptionFeeUsd;
 
   await storeOperationLog(deposit, log);
 }
 
-async function requestRedemption(deposit: Deposit, depositContract: IDepositContract): Promise<ITx> {
+async function requestRedemption(deposit: Deposit, depositContract: IDepositContract): Promise<IEthTx> {
   const redemptionAddressIndex = deposit.redemptionAddressIndex || (await getNextBtcAddressIndex());
   const redemptionAddress = deposit.redemptionAddress || btcClient.getAddress(redemptionAddressIndex);
-  const rawOutputScript = btcClient.addressToScript(redemptionAddress);
-  const redeemerOutputScript = `0x${Buffer.concat([Buffer.from([rawOutputScript.length]), rawOutputScript]).toString(
-    'hex'
-  )}`;
+  const redeemerOutputScript = btcClient.addressToRedeemerScript(redemptionAddress);
   // TODO: add check for 'inVendingMachine' (see tbtc.js)
   // TODO: check tbtc balance
   const utxoValue = await depositContract.getUtxoValue();
-  // TODO: compare with MINIMUM_REDEMPTION_FEE from TBTCConstants contract - how to find the contract on ropsten?
+  // TODO: compare with MINIMUM_REDEMPTION_FEE from TBTCConstants contract - is it necessary?
   const txFee = await btcClient.estimateSendFee(utxoValue, redemptionAddress);
   const outputValue = new BN(utxoValue).sub(new BN(txFee.toString()));
   const outputValueBytes = outputValue.toArrayLike(Buffer, 'le', 8);
@@ -117,7 +116,7 @@ async function requestRedemption(deposit: Deposit, depositContract: IDepositCont
 
   const log = new DepositOperationLog();
   log.txHash = tx.hash;
-  log.fromAddress = ethClient.getMainAddress();
+  log.fromAddress = ethClient.defaultWallet.address;
   log.toAddress = vendingMachine.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_REDEMPTION_REQUEST;
   log.direction = DepositOperationLogDirection.OUT;

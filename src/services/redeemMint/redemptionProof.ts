@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
 
-import { tbtcSystem, keepContractAt } from '../../contracts';
+import { tbtcSystem, keepContractAt, tbtcConstants } from '../../contracts';
 import { Deposit } from '../../entities/Deposit';
 import {
   BlockchainType,
@@ -8,11 +8,11 @@ import {
   DepositOperationLogStatus,
   DepositOperationLogType,
   IDepositContract,
-  ITx,
+  IEthTx,
 } from '../../types';
 import { createLogger } from '../../logger';
 import { DepositOperationLog } from '../../entities/DepositOperationLog';
-import { ethClient } from '../../clients';
+import { btcClient, ethClient } from '../../clients';
 import { fetchWeiToUsdPrice } from '../priceFeed';
 import {
   getOperationLogInStatus,
@@ -21,30 +21,34 @@ import {
   storeOperationLog,
 } from './operationLogHelper';
 import { ETH_MIN_CONFIRMATIONS } from '../../constants';
+import { getDeposit } from './depositHelper';
 
-const logger = createLogger('redemptionSig');
+const logger = createLogger('redemptionProof');
 
-export async function ensureRedemptionSigProvided(deposit: Deposit, depositContract: IDepositContract): Promise<ITx> {
-  logger.info(`Ensuring redemption sig provided for deposit ${deposit.depositAddress}...`);
+export async function ensureRedemptionProofProvided(
+  deposit: Deposit,
+  depositContract: IDepositContract
+): Promise<Deposit> {
+  logger.info(`Ensuring redemption proof provided for deposit ${deposit.depositAddress}...`);
   try {
-    // TODO: double check status on blockchain - AWAITING_WITHDRAWAL_SIGNATURE
-    const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_SIG);
+    // TODO: double check status on blockchain - AWAITING_WITHDRAWAL_PROOF
+    const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_PROOF);
     if (hasOperationLogInStatus(logs, DepositOperationLogStatus.CONFIRMED)) {
-      logger.info(`Redemption sig is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
-      return;
+      logger.info(`Redemption proof is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
+      return getDeposit(deposit.depositAddress);
     }
 
     const broadcastedLog = getOperationLogInStatus(logs, DepositOperationLogStatus.BROADCASTED);
     if (broadcastedLog) {
       logger.info(
-        `Redemption sig is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
+        `Redemption proof is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
       );
-      await confirmRedemptionSigProvided(deposit, broadcastedLog.txHash);
-      return;
+      await confirmRedemptionProofProvided(deposit, broadcastedLog.txHash);
+      return getDeposit(deposit.depositAddress);
     }
 
-    const tx = await provideRedemptionSig(deposit, depositContract);
-    await confirmRedemptionSigProvided(deposit, tx.hash);
+    const tx = await provideRedemptionProof(deposit, depositContract);
+    await confirmRedemptionProofProvided(deposit, tx.hash);
   } catch (e) {
     // TODO: handle errors inside functions above
     console.log(e);
@@ -52,21 +56,23 @@ export async function ensureRedemptionSigProvided(deposit: Deposit, depositContr
   } finally {
     // TODO: update total redemption cost
   }
+  return getDeposit(deposit.depositAddress);
 }
 
-async function confirmRedemptionSigProvided(deposit: Deposit, txHash: string): Promise<void> {
-  logger.info(`Waiting for confirmations for redemption sig for deposit ${deposit.depositAddress}...`);
+async function confirmRedemptionProofProvided(deposit: Deposit, txHash: string): Promise<void> {
+  logger.info(`Waiting for confirmations for redemption proof for deposit ${deposit.depositAddress}...`);
+  // TODO: check tx status; 0 - failure, 1 - success
   const txReceipt = await ethClient.httpProvider.waitForTransaction(txHash, ETH_MIN_CONFIRMATIONS);
 
   // TODO: check tx status
-  logger.info(`Got confirmations for redemption sig for deposit ${deposit.depositAddress}.`);
+  logger.info(`Got confirmations for redemption proof for deposit ${deposit.depositAddress}.`);
   logger.debug(JSON.stringify(txReceipt, null, 2));
 
   const log = new DepositOperationLog();
   log.txHash = txHash;
-  log.fromAddress = ethClient.getMainAddress();
+  log.fromAddress = ethClient.defaultWallet.address;
   log.toAddress = deposit.depositAddress;
-  log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_SIG;
+  log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_PROOF;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.CONFIRMED;
   log.blockchainType = BlockchainType.ETHEREUM;
@@ -76,56 +82,31 @@ async function confirmRedemptionSigProvided(deposit: Deposit, txHash: string): P
   await storeOperationLog(deposit, log);
 }
 
-async function provideRedemptionSig(deposit: Deposit, depositContract: IDepositContract): Promise<ITx> {
-  const redemptionRequestLogs = await getOperationLogsOfType(
-    deposit.id,
-    DepositOperationLogType.REDEEM_REDEMPTION_REQUEST
-  );
-  const confirmedRedemptionRequest = getOperationLogInStatus(
-    redemptionRequestLogs,
-    DepositOperationLogStatus.CONFIRMED
-  );
-  logger.info(`Fetching redemption details from event for deposit ${deposit.depositAddress}...`);
-  const { digest } = await tbtcSystem.getRedemptionDetailsFromEvent(
-    confirmedRedemptionRequest.txHash,
-    deposit.depositAddress,
-    deposit.blockNumber
+async function provideRedemptionProof(deposit: Deposit, depositContract: IDepositContract): Promise<IEthTx> {
+  const minConfirmations = await tbtcConstants.getMinBtcConfirmations();
+
+  const btcReceptionLogs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_BTC_RECEPTION);
+  const confirmedBtcReception = getOperationLogInStatus(btcReceptionLogs, DepositOperationLogStatus.CONFIRMED);
+
+  const outputPosition = -1;
+  const proofArgs = await btcClient.constructFundingProof(
+    confirmedBtcReception.txHash,
+    outputPosition,
+    minConfirmations
   );
 
-  logger.info(`Waiting for signature submitted from for deposit ${deposit.depositAddress}...`);
-  const { r, s, recoveryID } = await keepContractAt(deposit.keepAddress).waitOnSignatureSubmittedEvent(
-    digest,
-    deposit.blockNumber
-  );
+  // this may fail with "not at current or previous difficulty"
+  // DepositUtils.sol contract will compare submitted headers with current and previous difficulty
+  // and will revert if not a match
+  const tx = await depositContract.provideRedemptionProof(proofArgs);
 
-  // A constant in the Ethereum ECDSA signature scheme, used for public key recovery [1]
-  // Value is inherited from Bitcoin's Electrum wallet [2]
-  // [1] https://bitcoin.stackexchange.com/questions/38351/ecdsa-v-r-s-what-is-v/38909#38909
-  // [2] https://github.com/ethereum/EIPs/issues/155#issuecomment-253810938
-  const ETHEREUM_ECDSA_RECOVERY_V = BigNumber.from(27);
-  const v = BigNumber.from(recoveryID).add(ETHEREUM_ECDSA_RECOVERY_V);
-
-  logger.debug(
-    `Sending redemption sig tx for deposit ${deposit.depositAddress} with params:\n${JSON.stringify(
-      {
-        v: v.toString(),
-        r: r.toString(),
-        s: s.toString(),
-      },
-      null,
-      2
-    )}`
-  );
-
-  const tx = await depositContract.provideRedemptionSignature(v.toString(), r.toString(), s.toString());
-
-  logger.debug(`Redemption sig tx:\n${JSON.stringify(tx, null, 2)}`);
+  logger.debug(`Redemption proof tx:\n${JSON.stringify(tx, null, 2)}`);
 
   const log = new DepositOperationLog();
   log.txHash = tx.hash;
-  log.fromAddress = ethClient.getMainAddress();
+  log.fromAddress = ethClient.defaultWallet.address;
   log.toAddress = deposit.depositAddress;
-  log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_SIG;
+  log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_PROOF;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.BROADCASTED;
   log.blockchainType = BlockchainType.ETHEREUM;

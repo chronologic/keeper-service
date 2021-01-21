@@ -7,6 +7,9 @@ import { createLogger } from '../../logger';
 import { ensureApproveSpendingTbtc } from './redeemApprove';
 import { ensureRedemptionRequested } from './requestRedemption';
 import { ensureRedemptionSigProvided } from './redemptionSig';
+import { ensureBtcReceived } from './btcReception';
+import { getDeposit } from './depositHelper';
+import { ensureRedemptionProofProvided } from './redemptionProof';
 
 const logger = createLogger('redemption');
 let busy = false;
@@ -22,13 +25,15 @@ export async function init(): Promise<any> {
 }
 
 export async function checkForDepositToProcess(): Promise<void> {
-  busy = true;
-  const deposit = await getDepositToProcess();
+  if (!busy) {
+    busy = true;
+    const deposit = await getDepositToProcess();
 
-  if (deposit) {
-    await processDeposit(deposit);
-    checkForDepositToProcess();
-  } else {
+    if (deposit) {
+      await processDeposit(deposit);
+      busy = false;
+      checkForDepositToProcess();
+    }
     busy = false;
   }
 }
@@ -49,30 +54,20 @@ async function getDepositToProcess(): Promise<Deposit> {
 
 async function processDeposit(deposit: Deposit): Promise<void> {
   // TODO: change deposit state to REDEEMING
+  // TODO: check for errors, if 3 errors in one operation type - set deposit state to ERROR
   const depositContract = depositContractAt(deposit.depositAddress);
 
-  await ensureApproveSpendingTbtc(deposit, depositContract);
+  let updatedDeposit = await ensureApproveSpendingTbtc(deposit, depositContract);
 
-  await ensureRedemptionRequested(deposit, depositContract);
+  updatedDeposit = await ensureRedemptionRequested(updatedDeposit, depositContract);
 
-  await ensureRedemptionSigProvided(deposit, depositContract);
+  updatedDeposit = await ensureRedemptionSigProvided(updatedDeposit, depositContract);
 
-  // await ensureProvideRedemptionSignature(deposit, depositContract);
-  // try resume approve spending
-  // try resume
-}
+  updatedDeposit = await ensureBtcReceived(updatedDeposit);
 
-async function getDeposit(address: string): Promise<Deposit> {
-  const conn = await getConnection();
-  const manager = conn.createEntityManager();
+  updatedDeposit = await ensureRedemptionProofProvided(updatedDeposit, depositContract);
 
-  const deposit = await manager.findOne(Deposit, {
-    where: { depositAddress: address },
-  });
-
-  logger.debug(`Retrieved deposit for address ${address} \n ${JSON.stringify(deposit, null, 2)}`);
-
-  return deposit;
+  // MINTING ///////////////////////
 }
 
 export default { init };

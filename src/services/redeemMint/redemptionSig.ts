@@ -8,7 +8,7 @@ import {
   DepositOperationLogStatus,
   DepositOperationLogType,
   IDepositContract,
-  ITx,
+  IEthTx,
 } from '../../types';
 import { createLogger } from '../../logger';
 import { DepositOperationLog } from '../../entities/DepositOperationLog';
@@ -21,17 +21,21 @@ import {
   storeOperationLog,
 } from './operationLogHelper';
 import { ETH_MIN_CONFIRMATIONS } from '../../constants';
+import { getDeposit } from './depositHelper';
 
 const logger = createLogger('redemptionSig');
 
-export async function ensureRedemptionSigProvided(deposit: Deposit, depositContract: IDepositContract): Promise<ITx> {
+export async function ensureRedemptionSigProvided(
+  deposit: Deposit,
+  depositContract: IDepositContract
+): Promise<Deposit> {
   logger.info(`Ensuring redemption sig provided for deposit ${deposit.depositAddress}...`);
   try {
     // TODO: double check status on blockchain - AWAITING_WITHDRAWAL_SIGNATURE
     const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_SIG);
     if (hasOperationLogInStatus(logs, DepositOperationLogStatus.CONFIRMED)) {
       logger.info(`Redemption sig is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
-      return;
+      return getDeposit(deposit.depositAddress);
     }
 
     const broadcastedLog = getOperationLogInStatus(logs, DepositOperationLogStatus.BROADCASTED);
@@ -40,7 +44,7 @@ export async function ensureRedemptionSigProvided(deposit: Deposit, depositContr
         `Redemption sig is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
       );
       await confirmRedemptionSigProvided(deposit, broadcastedLog.txHash);
-      return;
+      return getDeposit(deposit.depositAddress);
     }
 
     const tx = await provideRedemptionSig(deposit, depositContract);
@@ -52,6 +56,7 @@ export async function ensureRedemptionSigProvided(deposit: Deposit, depositContr
   } finally {
     // TODO: update total redemption cost
   }
+  return getDeposit(deposit.depositAddress);
 }
 
 async function confirmRedemptionSigProvided(deposit: Deposit, txHash: string): Promise<void> {
@@ -64,7 +69,7 @@ async function confirmRedemptionSigProvided(deposit: Deposit, txHash: string): P
 
   const log = new DepositOperationLog();
   log.txHash = txHash;
-  log.fromAddress = ethClient.getMainAddress();
+  log.fromAddress = ethClient.defaultWallet.address;
   log.toAddress = deposit.depositAddress;
   log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_SIG;
   log.direction = DepositOperationLogDirection.OUT;
@@ -76,7 +81,7 @@ async function confirmRedemptionSigProvided(deposit: Deposit, txHash: string): P
   await storeOperationLog(deposit, log);
 }
 
-async function provideRedemptionSig(deposit: Deposit, depositContract: IDepositContract): Promise<ITx> {
+async function provideRedemptionSig(deposit: Deposit, depositContract: IDepositContract): Promise<IEthTx> {
   const redemptionRequestLogs = await getOperationLogsOfType(
     deposit.id,
     DepositOperationLogType.REDEEM_REDEMPTION_REQUEST
@@ -123,7 +128,7 @@ async function provideRedemptionSig(deposit: Deposit, depositContract: IDepositC
 
   const log = new DepositOperationLog();
   log.txHash = tx.hash;
-  log.fromAddress = ethClient.getMainAddress();
+  log.fromAddress = ethClient.defaultWallet.address;
   log.toAddress = deposit.depositAddress;
   log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_SIG;
   log.direction = DepositOperationLogDirection.OUT;

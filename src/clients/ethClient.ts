@@ -9,15 +9,7 @@ export const httpProvider = new ethers.providers.InfuraProvider(ETH_NETWORK, INF
 httpProvider.pollingInterval = 15 * SECOND_MILLIS;
 
 const hdNode = ethers.utils.HDNode.fromExtendedKey(ETH_XPRV);
-export const defaultWallet = new ethers.Wallet(getMainPrivKey(), httpProvider);
-
-export function getMainAddress(): string {
-  return getAddressAtIndex(0);
-}
-
-export function getMainPrivKey(): string {
-  return getPrivKeyAtIndex(0);
-}
+export const defaultWallet = new ethers.Wallet(getPrivKeyAtIndex(0), httpProvider);
 
 export function getAddressAtIndex(index: number): string {
   return hdNode.derivePath(index.toString()).address.toLowerCase();

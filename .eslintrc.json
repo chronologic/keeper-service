@@ -72,7 +72,10 @@
         "ignoreComments": true
       }
     ],
-    "no-shadow": "off"
+    "no-shadow": "off",
+    "function-call-argument-newline": "off",
+    "function-paren-newline": "off",
+    "implicit-arrow-linebreak": "off"
   },
   "overrides": [
     {

@@ -3,14 +3,16 @@ import ElectrumClient from 'electrum-client-js';
 import * as bjs from 'bitcoinjs-lib';
 import bip84 from 'bip84';
 import fetch from 'node-fetch';
+import { BigNumber } from 'ethers';
 
 import { ELECTRUMX_HOST, ELECTRUMX_PORT, ELECTRUMX_PROTOCOL, ELECTRUMX_NETWORK, BTC_ZPRV } from '../env';
 import { createLogger } from '../logger';
-import { BigNumber } from 'ethers';
 import { getAddressAtIndex } from './ethClient';
+import { numberToBnBtc } from '../utils';
+import { IFundingProof } from '../types';
+import BitcoinHelpers from './BitcoinHelpers';
 
-const logger = createLogger('btcClient');
-interface IRawTx {
+export interface IRawTx {
   blockhash: string;
   blocktime: number;
   confirmations: number;
@@ -76,11 +78,29 @@ interface IFeeEstimate {
   hourFree: number;
 }
 
+interface IBlockHeader {
+  height: number;
+  hex: string;
+}
+
+interface IMerkleProof {
+  proof: string;
+  position: number;
+}
+
+const logger = createLogger('btcClient');
+
 const MAX_ADDRESS_GAP = 10;
 const NETWORK = getNetworkFromEnv();
 const TEST_ADDRESS = getAddressAtIndex(999999); // "random" address for fee estimation
 // eslint-disable-next-line new-cap
 const wallet = new bip84.fromZPrv(BTC_ZPRV);
+
+BitcoinHelpers.setElectrumConfig({
+  protocol: ELECTRUMX_PROTOCOL,
+  server: ELECTRUMX_HOST,
+  port: ELECTRUMX_PORT,
+});
 
 /*
 BIP44 refers to the accepted common standard to derive non segwit addresses. These addresses always begin with a 1.
@@ -101,7 +121,7 @@ async function send(toAddress: string, amount: number): Promise<string> {
   const utxos = await getUnspentUtxosZpubSelf();
   const txs = await getTxsForUtxos(utxos);
   const { fastestFee } = await estimateFee();
-  const estimatedByteLength = utxos.length * 150 + 100; // rough estimate of how much the tx will cost
+  const estimatedByteLength = utxos.length * 150 + 100; // rough estimate of how many bytes the tx will take up
   const estimatedFee = fastestFee * estimatedByteLength;
   const totalUtxoValue = utxos.reduce<number>((sum: number, u) => sum + u.value, 0);
   const estimatedAmountAndFee = amount + estimatedFee;
@@ -272,11 +292,25 @@ async function getUnspentUtxosZpub(zpub: string): Promise<IUTXO[]> {
   return allUtxos;
 }
 
-async function waitForTransactionToAddress(address: string): Promise<any> {
-  const scriptHash = addressToScriptHash(address);
-  const tx = await requestAndClose((client) => client.blockchain_scripthash_subscribe(scriptHash));
+async function waitForTransactionToAddress(address: string, minValueSatoshis: BigNumber): Promise<IRawTx> {
+  const txs = await getTxHistory(address);
+  const tx = txs.reverse().find((t) =>
+    t.vout.some((v) => {
+      const isRecipientCurrentAddress = v.scriptPubKey.addresses
+        .map((a) => a.toLowerCase())
+        .includes(address.toLowerCase());
+      const valueSatoshis = numberToBnBtc(v.value);
+      return isRecipientCurrentAddress && valueSatoshis.gte(minValueSatoshis);
+    })
+  );
 
-  return tx;
+  if (tx) {
+    return tx;
+  }
+
+  await waitForNextBlock();
+
+  return waitForConfirmations(address);
 }
 
 async function waitForConfirmations(txHash: string, minConfirmations = 3): Promise<IRawTx> {
@@ -291,7 +325,7 @@ async function waitForConfirmations(txHash: string, minConfirmations = 3): Promi
   return waitForConfirmations(txHash, minConfirmations);
 }
 
-async function waitForNextBlock(): Promise<any> {
+async function waitForNextBlock(): Promise<IBlockHeader> {
   const res = await requestAndClose((client) => client.blockchain_headers_subscribe());
 
   return res;
@@ -345,6 +379,19 @@ async function getBalanceZpub(zpub: string): Promise<IRawBalance> {
   });
 
   return totalBalance;
+}
+
+async function getTxHistory(address: string): Promise<IRawTx[]> {
+  const scriptHash = addressToScriptHash(address);
+  return requestAndClose(async (client) => {
+    const history: IRawHitoryItem[] = await client.blockchain_scripthash_getHistory(scriptHash);
+    const txs: IRawTx[] = [];
+    for (const h of history) {
+      const tx = await client.blockchain_transaction_get(h.tx_hash, true);
+      txs.push(tx);
+    }
+    return txs;
+  });
 }
 
 async function getBalance(address: string): Promise<IRawBalance> {
@@ -408,28 +455,47 @@ async function estimateFee(): Promise<IFeeEstimate> {
   return estimate;
 }
 
-// send('tb1qft4ua8wgd2z7ra8jq05wfp66kuzhlwf2548cts', 123).then(console.log);
+function addressToRedeemerScript(address: string): string {
+  const rawOutputScript = addressToScript(address);
+  const redeemerOutputScript = `0x${Buffer.concat([Buffer.from([rawOutputScript.length]), rawOutputScript]).toString(
+    'hex'
+  )}`;
 
-// getUnspentUtxosZpubSelf().then(console.log);
+  return redeemerOutputScript;
+}
 
-// getBalanceZpubSelf().then(console.log);
-// getUnspentUtxosZpubSelf().then(console.log);
+async function constructFundingProof(
+  txid: string,
+  outputPosition: number,
+  confirmations: number
+): Promise<IFundingProof> {
+  const { parsedTransaction, merkleProof, chainHeaders, txInBlockIndex } = await BitcoinHelpers.Transaction.getSPVProof(
+    txid,
+    confirmations
+  );
+  const { version, txInVector, txOutVector, locktime } = parsedTransaction;
 
-// console.log(getAddress(1));
-// console.log(getAddress(2));
-
-// getUnspentUtxosZpub(
-//   'vpub5ZLXP5vktbtx2ZEgeKaq8mrXrDeGzWMe8u7tZxCqwK8xoTcwX2avGHJRn3hCB17b57x76Q8Wb6voQBVPGpGBQbDmFLQnsYidWgTZeBWh65R'
-// ).then((utxos) => {
-//   let total = 0;
-
-//   // eslint-disable-next-line no-return-assign
-//   utxos.forEach((utxo: any) => (total += utxo.value));
-
-//   console.log(total);
-
-//   console.log(utxos);
-// });
+  // return [
+  //   Buffer.from(version, 'hex'),
+  //   Buffer.from(txInVector, 'hex'),
+  //   Buffer.from(txOutVector, 'hex'),
+  //   Buffer.from(locktime, 'hex'),
+  //   outputPosition,
+  //   Buffer.from(merkleProof, 'hex'),
+  //   txInBlockIndex,
+  //   Buffer.from(chainHeaders, 'hex'),
+  // ];
+  return {
+    version: Buffer.from(version, 'hex'),
+    inputVector: Buffer.from(txInVector, 'hex'),
+    outputVector: Buffer.from(txOutVector, 'hex'),
+    locktime: Buffer.from(locktime, 'hex'),
+    outputPosition,
+    merkleProof: Buffer.from(merkleProof, 'hex'),
+    indexInBlock: txInBlockIndex,
+    bitcoinHeaders: Buffer.from(chainHeaders, 'hex'),
+  };
+}
 
 export {
   send,
@@ -438,8 +504,11 @@ export {
   waitForConfirmations,
   getAddress,
   getTransaction,
+  getTxHistory,
   getBalance,
   getBalanceZpub,
   getBalanceZpubSelf,
   addressToScript,
+  addressToRedeemerScript,
+  constructFundingProof,
 };

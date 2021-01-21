@@ -6,7 +6,7 @@ import {
   DepositOperationLogStatus,
   DepositOperationLogType,
   IDepositContract,
-  ITx,
+  IEthTx,
 } from '../../types';
 import { createLogger } from '../../logger';
 import { bnToNumber } from '../../utils';
@@ -20,17 +20,18 @@ import {
   hasOperationLogInStatus,
   storeOperationLog,
 } from './operationLogHelper';
+import { getDeposit } from './depositHelper';
 
 const logger = createLogger('redeemApprove');
 
-export async function ensureApproveSpendingTbtc(deposit: Deposit, depositContract: IDepositContract): Promise<void> {
+export async function ensureApproveSpendingTbtc(deposit: Deposit, depositContract: IDepositContract): Promise<Deposit> {
   logger.info(`Ensuring tbtc spending is approved for deposit ${deposit.depositAddress}...`);
   try {
     // TODO: double check status on blockchain - ACTIVE / COURTESY_CALL
     const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_APPROVE_TBTC);
     if (hasOperationLogInStatus(logs, DepositOperationLogStatus.CONFIRMED)) {
       logger.info(`Tbtc spending is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
-      return;
+      return getDeposit(deposit.depositAddress);
     }
 
     const broadcastedLog = getOperationLogInStatus(logs, DepositOperationLogStatus.BROADCASTED);
@@ -39,7 +40,7 @@ export async function ensureApproveSpendingTbtc(deposit: Deposit, depositContrac
         `Tbtc spending is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
       );
       await confirmApproveSpendingTbtc(deposit, broadcastedLog.txHash);
-      return;
+      return getDeposit(deposit.depositAddress);
     }
 
     const tx = await approveSpendingTbtc(deposit, depositContract);
@@ -51,6 +52,7 @@ export async function ensureApproveSpendingTbtc(deposit: Deposit, depositContrac
   } finally {
     // TODO: update total redemption cost
   }
+  return getDeposit(deposit.depositAddress);
 }
 
 async function confirmApproveSpendingTbtc(deposit: Deposit, txHash: string): Promise<void> {
@@ -62,7 +64,7 @@ async function confirmApproveSpendingTbtc(deposit: Deposit, txHash: string): Pro
 
   const log = new DepositOperationLog();
   log.txHash = txHash;
-  log.fromAddress = ethClient.getMainAddress();
+  log.fromAddress = ethClient.defaultWallet.address;
   log.toAddress = tbtcToken.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_APPROVE_TBTC;
   log.direction = DepositOperationLogDirection.OUT;
@@ -74,7 +76,7 @@ async function confirmApproveSpendingTbtc(deposit: Deposit, txHash: string): Pro
   await storeOperationLog(deposit, log);
 }
 
-async function approveSpendingTbtc(deposit: Deposit, depositContract: IDepositContract): Promise<ITx> {
+async function approveSpendingTbtc(deposit: Deposit, depositContract: IDepositContract): Promise<IEthTx> {
   const redemptionCost = await depositContract.getRedemptionCost();
   console.log(redemptionCost);
   console.log(redemptionCost.toString());
@@ -85,7 +87,7 @@ async function approveSpendingTbtc(deposit: Deposit, depositContract: IDepositCo
   const log = new DepositOperationLog();
   log.blockchainType = BlockchainType.ETHEREUM;
   log.txHash = tx.hash;
-  log.fromAddress = ethClient.getMainAddress();
+  log.fromAddress = ethClient.defaultWallet.address;
   log.toAddress = tbtcToken.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_APPROVE_TBTC;
   log.direction = DepositOperationLogDirection.OUT;

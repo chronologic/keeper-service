@@ -1,9 +1,31 @@
 /* eslint-disable max-classes-per-file */
 /* eslint-disable camelcase */
 declare module 'memory-cache';
+
+declare module 'bcrypto/lib/hash256.js';
+declare module 'bcrypto/lib/merkle.js';
+declare module 'bcrypto/lib/sha256.js';
+
+declare module 'bcrypto/lib/secp256k1.js';
+declare module 'bcoin/lib/primitives/keyring.js';
+declare module 'bcoin/lib/primitives/outpoint.js';
+declare module 'bcoin/lib/primitives/input.js';
+declare module 'bcoin/lib/primitives/output.js';
+declare module 'bcoin/lib/primitives/tx.js';
+declare module 'bcoin/lib/script/index.js';
+declare module 'bcoin/lib/primitives/index.js';
+
+declare module 'bufio';
+
+declare module 'src/lib/BitcoinSPV';
+declare module 'src/lib/BitcoinTxParser';
+declare module 'src/lib/backoff.js';
+
 declare module 'electrum-client-js' {
   export default class ElectrumClient {
     constructor(host: string, port: string, protocol: string, options?: any);
+
+    subscribe: any;
 
     connect(clientName: string, electrumProtocolVersion: string): Promise<void>;
 
@@ -37,9 +59,9 @@ declare module 'electrum-client-js' {
 
     blockchain_scripthash_unsubscribe(scripthash: any): Promise<any>;
 
-    blockchain_block_header(height: any, cpHeight: any): Promise<any>;
+    blockchain_block_header(height: any, cpHeight?: any): Promise<any>;
 
-    blockchain_block_headers(startHeight: any, count: any, cpHeight: any): Promise<any>;
+    blockchain_block_headers(startHeight: any, count: any, cpHeight?: any): Promise<any>;
 
     blockchainEstimatefee(number: any): Promise<any>;
 
