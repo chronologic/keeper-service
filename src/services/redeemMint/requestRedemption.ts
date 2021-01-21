@@ -1,7 +1,7 @@
 import { getConnection } from 'typeorm';
 import BN from 'bn.js';
 
-import { vendingMachine, depositContractAt, depositFactory } from '../../contracts';
+import { vendingMachine, depositContractAt } from '../../contracts';
 import { Deposit } from '../../entities/Deposit';
 import {
   BlockchainType,
@@ -13,8 +13,8 @@ import {
 } from '../../types';
 import { createLogger } from '../../logger';
 import { DepositOperationLog } from '../../entities/DepositOperationLog';
-import { ethClient } from '../../clients';
-import { fetchSatoshiToWeiPrice, fetchWeiToUsdPrice } from '../priceFeed';
+import { btcClient, ethClient } from '../../clients';
+import { fetchWeiToUsdPrice } from '../priceFeed';
 import {
   getOperationLogInStatus,
   getOperationLogsOfType,
@@ -22,7 +22,6 @@ import {
   storeOperationLog,
 } from './operationLogHelper';
 import { ETH_MIN_CONFIRMATIONS } from '../../constants';
-import btcClient from '../../clients/btcClient';
 
 const logger = createLogger('requestRedemption');
 
@@ -71,7 +70,7 @@ async function confirmRedemptionRequested(deposit: Deposit, txHash: string): Pro
   const log = new DepositOperationLog();
   log.txHash = txHash;
   log.fromAddress = ethClient.getMainAddress();
-  log.toAddress = await depositFactory.getVendingMachineAddress();
+  log.toAddress = vendingMachine.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_REDEMPTION_REQUEST;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.CONFIRMED;
@@ -119,7 +118,7 @@ async function requestRedemption(deposit: Deposit, depositContract: IDepositCont
   const log = new DepositOperationLog();
   log.txHash = tx.hash;
   log.fromAddress = ethClient.getMainAddress();
-  log.toAddress = await depositFactory.getVendingMachineAddress();
+  log.toAddress = vendingMachine.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_REDEMPTION_REQUEST;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.BROADCASTED;

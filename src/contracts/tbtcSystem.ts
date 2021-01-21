@@ -1,8 +1,7 @@
 import { BigNumber, ethers } from 'ethers';
 
-import TBTCSystemABI from '../abi/TBTCSystem.json';
 import { ethClient } from '../clients';
-import { getTbtcSystemAddress } from './depositFactory';
+import getAbiAndAddress from './getAbiAndAddress';
 
 interface IRedemptionDetails {
   depositContractAddress: string;
@@ -20,21 +19,15 @@ interface IRegisteredPubKeyEvent {
   _signingGroupKeyY: any;
 }
 
-// eslint-disable-next-line no-underscore-dangle
-let _contract: ethers.Contract;
+const { abi, address } = getAbiAndAddress('TBTCSystem');
 
-export async function getContract(): Promise<ethers.Contract> {
-  _contract = _contract || new ethers.Contract(await getTbtcSystemAddress(), TBTCSystemABI, ethClient.getMainWallet());
-
-  return _contract;
-}
+export const contract = new ethers.Contract(address, abi, ethClient.defaultWallet);
 
 export async function getRedemptionDetailsFromEvent(
   txHash: string,
   depositAddress: string,
   fromBlock: number
 ): Promise<IRedemptionDetails> {
-  const contract = await getContract();
   const [event] = await contract.queryFilter(contract.filters.RedemptionRequested(depositAddress), fromBlock);
   if (event.transactionHash !== txHash) {
     throw new Error(
@@ -67,7 +60,6 @@ export async function getRegisteredPubKeyEvent(
   depositAddress: string,
   fromBlock: number
 ): Promise<IRegisteredPubKeyEvent> {
-  const contract = await getContract();
   const [event] = await contract.queryFilter(contract.filters.RegisteredPubKey(depositAddress), fromBlock);
 
   const [_depositContractAddress, _signingGroupKeyX, _signingGroupKeyY] = event.args;
@@ -83,7 +75,6 @@ export async function waitOnRegisteredPubKeyEvent(
     const event = await getRegisteredPubKeyEvent(depositAddress, fromBlock);
     return event;
   } catch (e) {
-    const contract = await getContract();
     return new Promise<IRegisteredPubKeyEvent>((resolve, reject) => {
       contract.on(contract.filters.SignatureSubmitted(depositAddress), () => {
         resolve(getRegisteredPubKeyEvent(depositAddress, fromBlock));

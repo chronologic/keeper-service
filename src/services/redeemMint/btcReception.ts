@@ -47,11 +47,11 @@ export async function ensureBtcReceived(deposit: Deposit): Promise<ITx> {
       return;
     }
 
-    const tx = await provideRedemptionSig(deposit, depositContract);
-    await confirmBtcReceived(deposit, tx.hash);
+    // const tx = await provideRedemptionSig(deposit, depositContract);
+    // await confirmBtcReceived(deposit, tx.hash);
 
-    logger.info(`Confirming BTC reception for deposit ${deposit.depositAddress}...`);
-    await confirmBtcReceived(deposit, broadcastedLog.txHash);
+    // logger.info(`Confirming BTC reception for deposit ${deposit.depositAddress}...`);
+    // await confirmBtcReceived(deposit, broadcastedLog.txHash);
   } catch (e) {
     // TODO: handle errors inside functions above
     console.log(e);

@@ -1,4 +1,4 @@
-import { ethers, Event } from 'ethers';
+import { Event } from 'ethers';
 import { getConnection } from 'typeorm';
 
 import { Deposit } from '../entities/Deposit';
@@ -8,8 +8,6 @@ import { createLogger } from '../logger';
 import { DepositStatus } from '../types';
 import { bnToNumberBtc } from '../utils';
 import { tbtcSystem, depositContractAt, keepContractAt } from '../contracts';
-import TBTCSystemABI from '../abi/TBTCSystem.json';
-import { ethClient } from '../clients';
 
 const logger = createLogger('depositSync');
 
@@ -20,44 +18,17 @@ async function init(): Promise<void> {
 }
 
 async function listenForNewDeposists(): Promise<void> {
-  const tbtcSystemContract = await tbtcSystem.getContract();
-  tbtcSystemContract.on('Funded', async (...args) => {
-    const [_d, _tx, _t, event] = args;
+  tbtcSystem.contract.on('Funded', async (...args) => {
+    const [, , , event] = args;
     logger.info(`⭐ new Funded event at block ${event.blockNumber}`);
     await mapAndMaybeStoreFundedEvent(event);
   });
 }
 
-async function listenForDepositStateChanges(): Promise<void> {
-  const tbtcSystemContract = await tbtcSystem.getContract();
-  tbtcSystemContract.on('Funded', async (...args) => {
-    console.log('Funded', args);
-    // const [_a, _m, _k, _o, _n, event] = args;
-    // logger.info(`⭐ new Funded event at block ${event.blockNumber}`);
-    // const deposit = await mapAndMaybeStoreFundedEvent(event);
-    // logger.info(`✅ stored deposit ${deposit.depositAddress}`);
-  });
-  tbtcSystemContract.on('RedemptionRequested', async (...args) => {
-    console.log('RedemptionRequested', args);
-    // const [_a, _m, _k, _o, _n, event] = args;
-    // logger.info(`⭐ new Funded event at block ${event.blockNumber}`);
-    // const deposit = await mapAndMaybeStoreFundedEvent(event);
-    // logger.info(`✅ stored deposit ${deposit.depositAddress}`);
-  });
-  tbtcSystemContract.on('Redeemed', async (...args) => {
-    console.log('Redeemed', args);
-    // const [_a, _m, _k, _o, _n, event] = args;
-    // logger.info(`⭐ new Funded event at block ${event.blockNumber}`);
-    // const deposit = await mapAndMaybeStoreFundedEvent(event);
-    // logger.info(`✅ stored deposit ${deposit.depositAddress}`);
-  });
-}
-
 async function syncDepositsFromLogs(): Promise<void> {
   const lastSyncedBlockNumber = await getLastSyncedBlockNumber();
-  const tbtcSystemContract = await tbtcSystem.getContract();
   logger.info(`🚀 syncing deposits from logs starting from block ${lastSyncedBlockNumber}...`);
-  const events = await tbtcSystemContract.queryFilter(tbtcSystemContract.filters.Funded(), lastSyncedBlockNumber);
+  const events = await tbtcSystem.contract.queryFilter(tbtcSystem.contract.filters.Funded(), lastSyncedBlockNumber);
 
   logger.info(`ℹ found ${events.length} events, syncing...`);
 
@@ -108,11 +79,10 @@ async function mapAndMaybeStoreFundedEvent(event: Event): Promise<boolean> {
 }
 
 async function mapFundedEventToDeposit(event: Event): Promise<Deposit> {
-  const tbtcSystemContract = await tbtcSystem.getContract();
   const deposit = new Deposit();
   deposit.blockNumber = event.blockNumber;
 
-  const parsed = tbtcSystemContract.interface.parseLog(event);
+  const parsed = tbtcSystem.contract.interface.parseLog(event);
   const [depositAddress]: [string] = parsed.args as any;
 
   deposit.depositAddress = depositAddress.toLowerCase();

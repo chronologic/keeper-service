@@ -1,16 +1,16 @@
 import { ethers } from 'ethers';
 
-import VendingMachineABI from '../abi/VendingMachine.json';
 import { ethClient } from '../clients';
 import { ITx } from '../types';
-import { getVendingMachineAddress } from './depositFactory';
+import getAbiAndAddress from './getAbiAndAddress';
 import { approve } from './tbtcToken';
 
-// eslint-disable-next-line no-underscore-dangle
-let _contract: ethers.Contract;
+const { abi, address } = getAbiAndAddress('VendingMachine');
+
+export const contract = new ethers.Contract(address, abi, ethClient.defaultWallet);
 
 export async function approveSpendingTbtc(amount: ethers.BigNumber): Promise<ITx> {
-  return approve(await getVendingMachineAddress(), amount);
+  return approve(address, amount);
 }
 
 export async function tbtcToBtc(
@@ -18,14 +18,5 @@ export async function tbtcToBtc(
   outputValueBytes: Buffer,
   redeemerOutputScript: string
 ): Promise<ITx> {
-  const contract = await getContract();
-
   return contract.functions.tbtcToBtc(depositAddress, outputValueBytes, redeemerOutputScript, { gasLimit: 1_000_000 });
-}
-
-async function getContract(): Promise<ethers.Contract> {
-  _contract =
-    _contract || new ethers.Contract(await getVendingMachineAddress(), VendingMachineABI, ethClient.getMainWallet());
-
-  return _contract;
 }

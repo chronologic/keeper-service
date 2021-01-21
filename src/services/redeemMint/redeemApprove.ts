@@ -1,4 +1,4 @@
-import { vendingMachine, depositFactory } from '../../contracts';
+import { tbtcToken, vendingMachine } from '../../contracts';
 import { Deposit } from '../../entities/Deposit';
 import {
   BlockchainType,
@@ -63,7 +63,7 @@ async function confirmApproveSpendingTbtc(deposit: Deposit, txHash: string): Pro
   const log = new DepositOperationLog();
   log.txHash = txHash;
   log.fromAddress = ethClient.getMainAddress();
-  log.toAddress = await depositFactory.getTbtcTokenAddress();
+  log.toAddress = tbtcToken.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_APPROVE_TBTC;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.CONFIRMED;
@@ -86,7 +86,7 @@ async function approveSpendingTbtc(deposit: Deposit, depositContract: IDepositCo
   log.blockchainType = BlockchainType.ETHEREUM;
   log.txHash = tx.hash;
   log.fromAddress = ethClient.getMainAddress();
-  log.toAddress = await depositFactory.getTbtcTokenAddress();
+  log.toAddress = tbtcToken.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_APPROVE_TBTC;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.BROADCASTED;

@@ -364,7 +364,7 @@ function addressToScript(address: string): Buffer {
 
 function getNetworkFromEnv(): bjs.networks.Network {
   switch (ELECTRUMX_NETWORK) {
-    case 'bitcoin': {
+    case 'mainnet': {
       return bjs.networks.bitcoin;
     }
     case 'testnet': {

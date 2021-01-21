@@ -1,7 +1,7 @@
 import { BigNumber, ethers } from 'ethers';
 
-import KeepABI from '../abi/BondedECDSAKeep.json';
 import { ethClient } from '../clients';
+import getAbiAndAddress from './getAbiAndAddress';
 
 interface IKeepContract {
   getBondedEth(): Promise<BigNumber>;
@@ -18,8 +18,10 @@ interface ISignatureSubmittedEvent {
   recoveryID: number;
 }
 
+const { abi } = getAbiAndAddress('IBondedECDSAKeep');
+
 export default function getContractAt(address: string): IKeepContract {
-  const contract = new ethers.Contract(address, KeepABI, ethClient.getMainWallet());
+  const contract = new ethers.Contract(address, abi, ethClient.defaultWallet);
 
   return {
     getBondedEth,

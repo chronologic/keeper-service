@@ -1,12 +1,14 @@
 import { ethers } from 'ethers';
 
-import DepositABI from '../abi/Deposit.json';
 import { ethClient } from '../clients';
 import { IDepositContract } from '../types';
 import { satoshiToWei } from '../utils';
+import getAbiAndAddress from './getAbiAndAddress';
+
+const { abi } = getAbiAndAddress('Deposit');
 
 export default function getContractAt(address: string): IDepositContract {
-  const contract = new ethers.Contract(address, DepositABI, ethClient.getMainWallet());
+  const contract = new ethers.Contract(address, abi, ethClient.defaultWallet);
 
   return {
     getKeepAddress,
