@@ -22,6 +22,7 @@ interface IRegisteredPubKeyEvent {
 const { abi, address } = getAbiAndAddress('TBTCSystem');
 
 export const contract = new ethers.Contract(address, abi, ethClient.defaultWallet);
+const contractInterface = new ethers.utils.Interface(abi);
 
 export async function getRedemptionDetailsFromEvent(
   txHash: string,
@@ -81,4 +82,26 @@ export async function waitOnRegisteredPubKeyEvent(
       });
     });
   }
+}
+
+export async function getNewDepositFeeEstimate(): Promise<BigNumber> {
+  const [estimate] = await contract.functions.getNewDepositFeeEstimate();
+
+  return estimate;
+}
+
+export function parseLogs(logs: ethers.providers.Log[]): ethers.utils.LogDescription[] {
+  return logs
+    .map((l) => {
+      try {
+        return contractInterface.parseLog(l);
+      } catch (e) {
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
+export function findLog(logs: ethers.providers.Log[], logName: string): ethers.utils.LogDescription {
+  return parseLogs(logs).find((l) => l.name === logName);
 }

@@ -14,7 +14,7 @@ import {
 import { createLogger } from '../../logger';
 import { DepositOperationLog } from '../../entities/DepositOperationLog';
 import { btcClient, ethClient } from '../../clients';
-import { fetchWeiToUsdPrice } from '../priceFeed';
+import priceFeed from '../priceFeed';
 import {
   getOperationLogInStatus,
   getOperationLogsOfType,
@@ -22,7 +22,7 @@ import {
   storeOperationLog,
 } from './operationLogHelper';
 import { ETH_MIN_CONFIRMATIONS } from '../../constants';
-import { getDeposit } from './depositHelper';
+import { getDeposit } from '../depositHelper';
 
 const logger = createLogger('requestRedemption');
 
@@ -61,14 +61,13 @@ export async function ensureRedemptionRequested(deposit: Deposit, depositContrac
 
 async function confirmRedemptionRequested(deposit: Deposit, txHash: string): Promise<void> {
   logger.info(`Waiting for confirmations for redemption request for deposit ${deposit.depositAddress}...`);
-  const txReceipt = await ethClient.httpProvider.waitForTransaction(txHash, ETH_MIN_CONFIRMATIONS);
+  const txReceipt = await ethClient.confirmTransaction(txHash);
 
-  // TODO: check tx status
   logger.info(`Got confirmations for redemption request for deposit ${deposit.depositAddress}.`);
   logger.debug(JSON.stringify(txReceipt, null, 2));
 
   const redemptionFeeEth = await depositContractAt(deposit.depositAddress).getRedemptionFee();
-  const redemptionFeeUsd = await fetchWeiToUsdPrice(redemptionFeeEth);
+  const txCost = txReceipt.gasUsed.add(redemptionFeeEth);
   const log = new DepositOperationLog();
   log.txHash = txHash;
   log.fromAddress = ethClient.defaultWallet.address;
@@ -77,9 +76,8 @@ async function confirmRedemptionRequested(deposit: Deposit, txHash: string): Pro
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.CONFIRMED;
   log.blockchainType = BlockchainType.ETHEREUM;
-  log.txCostEthEquivalent = txReceipt.gasUsed.add(redemptionFeeEth);
-  const txUsdCost = await fetchWeiToUsdPrice(txReceipt.gasUsed);
-  log.txCostUsdEquivalent = txUsdCost + redemptionFeeUsd;
+  log.txCostEthEquivalent = txCost;
+  log.txCostUsdEquivalent = await priceFeed.convertWeiToUsd(txCost);
 
   await storeOperationLog(deposit, log);
 }

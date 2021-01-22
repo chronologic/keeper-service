@@ -15,7 +15,7 @@ import {
   hasOperationLogInStatus,
   storeOperationLog,
 } from './operationLogHelper';
-import { getDeposit } from './depositHelper';
+import { getDeposit } from '../depositHelper';
 
 const logger = createLogger('btcReception');
 

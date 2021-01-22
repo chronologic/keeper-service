@@ -2,6 +2,8 @@ import { BigNumber, ethers } from 'ethers';
 
 import { ethClient } from '../clients';
 import getAbiAndAddress from './getAbiAndAddress';
+// for some reason there's no complete ABI for BondedECDSAKeep in @keep-network/tbtc
+import keepAbi from '../abi/BondedECDSAKeep.json';
 
 interface IKeepContract {
   getBondedEth(): Promise<BigNumber>;
@@ -18,10 +20,8 @@ interface ISignatureSubmittedEvent {
   recoveryID: number;
 }
 
-const { abi } = getAbiAndAddress('IBondedECDSAKeep');
-
 export default function getContractAt(address: string): IKeepContract {
-  const contract = new ethers.Contract(address, abi, ethClient.defaultWallet);
+  const contract = new ethers.Contract(address, keepAbi, ethClient.defaultWallet);
 
   return {
     getBondedEth,

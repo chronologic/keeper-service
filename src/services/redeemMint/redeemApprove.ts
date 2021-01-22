@@ -12,15 +12,14 @@ import { createLogger } from '../../logger';
 import { bnToNumber } from '../../utils';
 import { DepositOperationLog } from '../../entities/DepositOperationLog';
 import { ethClient } from '../../clients';
-import { fetchWeiToUsdPrice } from '../priceFeed';
-import { ETH_MIN_CONFIRMATIONS } from '../../constants';
+import priceFeed from '../priceFeed';
 import {
   getOperationLogInStatus,
   getOperationLogsOfType,
   hasOperationLogInStatus,
   storeOperationLog,
 } from './operationLogHelper';
-import { getDeposit } from './depositHelper';
+import { getDeposit } from '../depositHelper';
 
 const logger = createLogger('redeemApprove');
 
@@ -57,9 +56,7 @@ export async function ensureApproveSpendingTbtc(deposit: Deposit, depositContrac
 
 async function confirmApproveSpendingTbtc(deposit: Deposit, txHash: string): Promise<void> {
   logger.info(`Waiting for confirmations for TBTC spending for deposit ${deposit.depositAddress}...`);
-  const res = await ethClient.httpProvider.waitForTransaction(txHash, ETH_MIN_CONFIRMATIONS);
-  console.log(res);
-  // TODO: check tx status
+  const res = await ethClient.confirmTransaction(txHash);
   logger.info(`Got confirmations for TBTC spending for deposit ${deposit.depositAddress}.`);
 
   const log = new DepositOperationLog();
@@ -71,7 +68,7 @@ async function confirmApproveSpendingTbtc(deposit: Deposit, txHash: string): Pro
   log.status = DepositOperationLogStatus.CONFIRMED;
   log.blockchainType = BlockchainType.ETHEREUM;
   log.txCostEthEquivalent = res.gasUsed;
-  log.txCostUsdEquivalent = await fetchWeiToUsdPrice(res.gasUsed);
+  log.txCostUsdEquivalent = await priceFeed.convertWeiToUsd(res.gasUsed);
 
   await storeOperationLog(deposit, log);
 }

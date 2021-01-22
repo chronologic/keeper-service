@@ -19,40 +19,39 @@ interface IPrices {
 const logger = createLogger('priceFeed');
 const cache = createTimedCache<IPrices>(MINUTE_MILLIS);
 
-export async function fetchSatoshiToWeiPrice(satoshi: BigNumberish): Promise<BigNumber> {
-  const btcToEth = await fetchBtcToEthRatio();
+async function convertSatoshiToWei(satoshi: BigNumberish): Promise<BigNumber> {
+  const btcToEth = await fetchBtcToEth();
   const ratioWei = numberToBnEth(btcToEth);
   const satoshiInWei = satoshiToWei(satoshi);
   return satoshiInWei.mul(ratioWei).div(BigNumber.from(10).pow(ETH_DECIMALS));
 }
 
-export async function fetchWeiToUsdPrice(wei: BigNumberish): Promise<number> {
-  const ethToUsd = await fetchEthToUsdRatio();
+async function convertWeiToUsd(wei: BigNumberish): Promise<number> {
+  const ethToUsd = await fetchEthToUsd();
   const ratioWei = numberToBnEth(ethToUsd);
   const weiInUsd = BigNumber.from(wei).mul(ratioWei).div(BigNumber.from(10).pow(ETH_DECIMALS));
-  console.log(ethToUsd, BigNumber.from(wei).toString(), ratioWei.toString(), weiInUsd.toString());
   return bnToNumberEth(weiInUsd);
 }
 
-export async function fetchEthToBtcRatio(): Promise<number> {
+async function fetchEthToBtc(): Promise<number> {
   const prices = await fetchPrices();
 
   return prices.ethereum.btc;
 }
 
-export async function fetchBtcToEthRatio(): Promise<number> {
+async function fetchBtcToEth(): Promise<number> {
   const prices = await fetchPrices();
 
   return prices.bitcoin.eth;
 }
 
-export async function fetchEthToUsdRatio(): Promise<number> {
+async function fetchEthToUsd(): Promise<number> {
   const prices = await fetchPrices();
 
   return prices.ethereum.usd;
 }
 
-export async function fetchBtcToUsdRatio(): Promise<number> {
+async function fetchBtcToUsd(): Promise<number> {
   const prices = await fetchPrices();
 
   return prices.bitcoin.usd;
@@ -78,3 +77,12 @@ async function fetchPrices(): Promise<IPrices> {
 
   return json;
 }
+
+export default {
+  convertSatoshiToWei,
+  convertWeiToUsd,
+  fetchBtcToEth,
+  fetchBtcToUsd,
+  fetchEthToBtc,
+  fetchEthToUsd,
+};

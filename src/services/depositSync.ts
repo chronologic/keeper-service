@@ -2,12 +2,12 @@ import { Event } from 'ethers';
 import { getConnection } from 'typeorm';
 
 import { Deposit } from '../entities/Deposit';
-import { Operator } from '../entities/Operator';
 import { DEPOSIT_SYNC_MIN_BLOCK } from '../env';
 import { createLogger } from '../logger';
 import { DepositStatus } from '../types';
 import { bnToNumberBtc } from '../utils';
-import { tbtcSystem, depositContractAt, keepContractAt } from '../contracts';
+import { tbtcSystem } from '../contracts';
+import { buildDeposit, storeDeposit } from './depositHelper';
 
 const logger = createLogger('depositSync');
 
@@ -21,7 +21,7 @@ async function listenForNewDeposists(): Promise<void> {
   tbtcSystem.contract.on('Funded', async (...args) => {
     const [, , , event] = args;
     logger.info(`⭐ new Funded event at block ${event.blockNumber}`);
-    await mapAndMaybeStoreFundedEvent(event);
+    await maybeStoreDepositFundedEvent(event);
   });
 }
 
@@ -36,7 +36,7 @@ async function syncDepositsFromLogs(): Promise<void> {
   let skippedCount = 0;
 
   for (const event of events) {
-    const stored = await mapAndMaybeStoreFundedEvent(event);
+    const stored = await maybeStoreDepositFundedEvent(event);
     if (stored) {
       storedCount += 1;
     } else {
@@ -59,8 +59,10 @@ async function getLastSyncedBlockNumber(): Promise<number> {
   return max || DEPOSIT_SYNC_MIN_BLOCK;
 }
 
-async function mapAndMaybeStoreFundedEvent(event: Event): Promise<boolean> {
-  let deposit = await mapFundedEventToDeposit(event);
+async function maybeStoreDepositFundedEvent(event: Event): Promise<boolean> {
+  const parsed = tbtcSystem.contract.interface.parseLog(event);
+  const [depositAddress]: [string] = parsed.args as any;
+  let deposit = await buildDeposit(depositAddress, event.blockNumber);
   let stored = false;
   const acceptedStatuses = [DepositStatus.ACTIVE, DepositStatus.COURTESY_CALL];
 
@@ -76,74 +78,6 @@ async function mapAndMaybeStoreFundedEvent(event: Event): Promise<boolean> {
   );
 
   return stored;
-}
-
-async function mapFundedEventToDeposit(event: Event): Promise<Deposit> {
-  const deposit = new Deposit();
-  deposit.blockNumber = event.blockNumber;
-
-  const parsed = tbtcSystem.contract.interface.parseLog(event);
-  const [depositAddress]: [string] = parsed.args as any;
-
-  deposit.depositAddress = depositAddress.toLowerCase();
-  const depositContract = depositContractAt(depositAddress);
-
-  deposit.statusCode = await depositContract.getStatusCode();
-  deposit.status = DepositStatus[deposit.statusCode];
-
-  deposit.keepAddress = await depositContract.getKeepAddress();
-  const keepContract = keepContractAt(deposit.keepAddress);
-
-  deposit.bondedEth = await keepContract.getBondedEth();
-
-  const createdAtTimestamp = await keepContract.getOpenedTimestamp();
-  deposit.createdAt = new Date(createdAtTimestamp);
-
-  deposit.lotSizeSatoshis = await depositContract.getLotSizeSatoshis();
-
-  deposit.undercollateralizedThresholdPercent = await depositContract.getUndercollateralizedThresholdPercent();
-
-  const operators = await keepContract.getMembers();
-
-  deposit.operators = operators.map((o: string) => {
-    const operator = new Operator();
-    operator.address = o;
-    return operator;
-  });
-
-  return deposit;
-}
-
-async function storeDeposit(deposit: Deposit): Promise<Deposit> {
-  const connection = getConnection();
-  const manager = connection.createEntityManager();
-  // eslint-disable-next-line no-param-reassign
-  deposit.operators = await Promise.all(deposit.operators.map(storeOperator));
-
-  let depositDb = await manager.findOne(Deposit, {
-    where: { depositAddress: deposit.depositAddress },
-  });
-
-  depositDb = (await manager.save(Deposit, { ...depositDb, ...deposit })) as Deposit;
-
-  return depositDb;
-}
-
-async function storeOperator(operator: Operator): Promise<Operator> {
-  const connection = getConnection();
-  const manager = connection.createEntityManager();
-
-  let operatorDb = await manager.findOne(Operator, {
-    where: { address: operator.address },
-  });
-
-  if (operatorDb) {
-    return operatorDb;
-  }
-
-  operatorDb = (await manager.save(Operator, operator)) as Operator;
-
-  return operatorDb;
 }
 
 export default {

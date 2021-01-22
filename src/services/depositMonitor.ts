@@ -7,7 +7,7 @@ import { createLogger } from '../logger';
 import { DepositStatus } from '../types';
 import { depositContractAt } from '../contracts';
 import { bnToNumberBtc, bnToNumberEth, numberToBnBtc } from '../utils';
-import { fetchEthToBtcRatio } from './priceFeed';
+import priceFeed from './priceFeed';
 
 const logger = createLogger('depositMonitor');
 const minLotSize = numberToBnBtc(MIN_LOT_SIZE_BTC).toString();
@@ -26,7 +26,7 @@ async function checkDepositsAndScheduleNextRun(): Promise<void> {
 async function checkDeposits(): Promise<void> {
   logger.info('🚀 checking deposits collateral...');
   const deposits = await getDepositsToCheck();
-  const ethToBtcRatio = await fetchEthToBtcRatio();
+  const ethToBtcRatio = await priceFeed.fetchEthToBtc();
 
   const depositsToRedeem = deposits.filter((d) => shouldRedeemDeposit(d, ethToBtcRatio));
 

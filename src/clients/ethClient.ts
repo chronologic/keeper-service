@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 import { ETH_NETWORK, ETH_XPRV, INFURA_API_KEY } from '../env';
-import { SECOND_MILLIS } from '../constants';
+import { ETH_MIN_CONFIRMATIONS, SECOND_MILLIS } from '../constants';
 
 export const wsProvider = new ethers.providers.InfuraWebSocketProvider(ETH_NETWORK, INFURA_API_KEY);
 export const httpProvider = new ethers.providers.InfuraProvider(ETH_NETWORK, INFURA_API_KEY);
@@ -17,4 +17,13 @@ export function getAddressAtIndex(index: number): string {
 
 export function getPrivKeyAtIndex(index: number): string {
   return hdNode.derivePath(index.toString()).privateKey;
+}
+
+export async function confirmTransaction(txHash: string): Promise<ethers.providers.TransactionReceipt> {
+  const txReceipt = await httpProvider.waitForTransaction(txHash, ETH_MIN_CONFIRMATIONS);
+  if (txReceipt.status === 0) {
+    throw new Error(`Transaction failed ${txHash} ${JSON.stringify(txReceipt)}`);
+  }
+
+  return txReceipt;
 }

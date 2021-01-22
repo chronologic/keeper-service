@@ -8,8 +8,9 @@ import { ensureApproveSpendingTbtc } from './redeemApprove';
 import { ensureRedemptionRequested } from './requestRedemption';
 import { ensureRedemptionSigProvided } from './redemptionSig';
 import { ensureBtcReceived } from './btcReception';
-import { getDeposit } from './depositHelper';
+import { getDeposit } from '../depositHelper';
 import { ensureRedemptionProofProvided } from './redemptionProof';
+import { ensureDepositCreated } from './createDeposit';
 
 const logger = createLogger('redemption');
 let busy = false;
@@ -68,6 +69,8 @@ async function processDeposit(deposit: Deposit): Promise<void> {
   updatedDeposit = await ensureRedemptionProofProvided(updatedDeposit, depositContract);
 
   // MINTING ///////////////////////
+
+  updatedDeposit = await ensureDepositCreated(updatedDeposit, depositContract);
 }
 
 export default { init };

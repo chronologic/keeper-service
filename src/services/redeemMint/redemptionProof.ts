@@ -13,7 +13,7 @@ import {
 import { createLogger } from '../../logger';
 import { DepositOperationLog } from '../../entities/DepositOperationLog';
 import { btcClient, ethClient } from '../../clients';
-import { fetchWeiToUsdPrice } from '../priceFeed';
+import priceFeed from '../priceFeed';
 import {
   getOperationLogInStatus,
   getOperationLogsOfType,
@@ -21,7 +21,7 @@ import {
   storeOperationLog,
 } from './operationLogHelper';
 import { ETH_MIN_CONFIRMATIONS } from '../../constants';
-import { getDeposit } from './depositHelper';
+import { getDeposit } from '../depositHelper';
 
 const logger = createLogger('redemptionProof');
 
@@ -61,8 +61,7 @@ export async function ensureRedemptionProofProvided(
 
 async function confirmRedemptionProofProvided(deposit: Deposit, txHash: string): Promise<void> {
   logger.info(`Waiting for confirmations for redemption proof for deposit ${deposit.depositAddress}...`);
-  // TODO: check tx status; 0 - failure, 1 - success
-  const txReceipt = await ethClient.httpProvider.waitForTransaction(txHash, ETH_MIN_CONFIRMATIONS);
+  const txReceipt = await ethClient.confirmTransaction(txHash);
 
   // TODO: check tx status
   logger.info(`Got confirmations for redemption proof for deposit ${deposit.depositAddress}.`);
@@ -77,7 +76,7 @@ async function confirmRedemptionProofProvided(deposit: Deposit, txHash: string):
   log.status = DepositOperationLogStatus.CONFIRMED;
   log.blockchainType = BlockchainType.ETHEREUM;
   log.txCostEthEquivalent = txReceipt.gasUsed;
-  log.txCostUsdEquivalent = await fetchWeiToUsdPrice(txReceipt.gasUsed);
+  log.txCostUsdEquivalent = await priceFeed.convertWeiToUsd(txReceipt.gasUsed);
 
   await storeOperationLog(deposit, log);
 }

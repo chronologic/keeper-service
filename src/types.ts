@@ -1,3 +1,4 @@
+import { number } from 'bitcoinjs-lib/types/script';
 import { BigNumber } from 'ethers';
 
 // status codes from the Deposit contract
@@ -41,7 +42,6 @@ export enum DepositOperationLogType {
   REDEEM_PROVIDE_REDEMPTION_PROOF = 'REDEEM_PROVIDE_REDEMPTION_PROOF',
 
   // minting
-  MINT_START = 'MINT_START',
   MINT_CREATE_DEPOSIT = 'MINT_CREATE_DEPOSIT',
   MINT_RETRIEVE_PUBKEY = 'MINT_RETRIEVE_PUBKEY',
   MINT_FUND_BTC = 'MINT_FUND_BTC',
@@ -112,4 +112,11 @@ export interface IFundingProof {
   merkleProof: Buffer;
   indexInBlock: number;
   bitcoinHeaders: Buffer;
+}
+
+export interface IEthersTxOptions {
+  gasPrice: number;
+  gasLimit: number;
+  nonce: number;
+  value: BigNumber;
 }

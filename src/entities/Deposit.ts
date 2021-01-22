@@ -8,6 +8,8 @@ import {
   Index,
   ManyToMany,
   OneToMany,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 
 import { bigNumberColumnOptions, lowercaseTransformer } from './shared';
@@ -24,6 +26,13 @@ export class Deposit {
 
   @OneToMany((_type) => DepositOperationLog, (depositOperation) => depositOperation.deposit, { nullable: true })
   depositOperations: DepositOperationLog[];
+
+  @OneToOne((_type) => Deposit, (deposit) => deposit.mintedDeposit, { nullable: true })
+  @JoinColumn()
+  mintedDeposit: Deposit;
+
+  @Column({ nullable: true })
+  mintedDepositId: number;
 
   @Index({ unique: true })
   @Column({ transformer: lowercaseTransformer })
