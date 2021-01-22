@@ -24,30 +24,27 @@ import { getDeposit } from '../depositHelper';
 
 const logger = createLogger('redemptionSig');
 
-export async function ensureRedemptionSigProvided(
-  deposit: Deposit,
-  depositContract: IDepositContract
-): Promise<Deposit> {
-  logger.info(`Ensuring redemption sig provided for deposit ${deposit.depositAddress}...`);
+export async function ensurePubkeyRetrieved(deposit: Deposit, depositContract: IDepositContract): Promise<Deposit> {
+  logger.info(`Ensuring pubkey provided for deposit ${deposit.depositAddress}...`);
   try {
     // TODO: double check status on blockchain - AWAITING_WITHDRAWAL_SIGNATURE
-    const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_SIG);
+    const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.MINT_RETRIEVE_PUBKEY);
     if (hasOperationLogInStatus(logs, DepositOperationLogStatus.CONFIRMED)) {
-      logger.info(`Redemption sig is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
+      logger.info(`Pubkey retrieved is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
       return getDeposit(deposit.depositAddress);
     }
 
     const broadcastedLog = getOperationLogInStatus(logs, DepositOperationLogStatus.BROADCASTED);
     if (broadcastedLog) {
       logger.info(
-        `Redemption sig is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
+        `Pubkey retrieved is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
       );
-      await confirmRedemptionSigProvided(deposit, broadcastedLog.txHash);
+      await confirmPubkeyRetrieved(deposit, broadcastedLog.txHash);
       return getDeposit(deposit.depositAddress);
     }
 
-    const tx = await provideRedemptionSig(deposit, depositContract);
-    await confirmRedemptionSigProvided(deposit, tx.hash);
+    const tx = await retrievePubkey(deposit, depositContract);
+    await confirmPubkeyRetrieved(deposit, tx.hash);
   } catch (e) {
     // TODO: handle errors inside functions above
     console.log(e);
@@ -58,7 +55,7 @@ export async function ensureRedemptionSigProvided(
   return getDeposit(deposit.depositAddress);
 }
 
-async function confirmRedemptionSigProvided(deposit: Deposit, txHash: string): Promise<void> {
+async function confirmPubkeyRetrieved(deposit: Deposit, txHash: string): Promise<void> {
   logger.info(`Waiting for confirmations for redemption sig for deposit ${deposit.depositAddress}...`);
   const txReceipt = await ethClient.confirmTransaction(txHash);
 
@@ -80,7 +77,7 @@ async function confirmRedemptionSigProvided(deposit: Deposit, txHash: string): P
   await storeOperationLog(deposit, log);
 }
 
-async function provideRedemptionSig(deposit: Deposit, depositContract: IDepositContract): Promise<IEthTx> {
+async function retrievePubkey(deposit: Deposit, depositContract: IDepositContract): Promise<IEthTx> {
   const redemptionRequestLogs = await getOperationLogsOfType(
     deposit.id,
     DepositOperationLogType.REDEEM_REDEMPTION_REQUEST
