@@ -35,12 +35,6 @@ export class DepositOperationLog {
   @Column({ length: 20 })
   status: DepositOperationLogStatus;
 
-  @Column({ length: 100, transformer: lowercaseTransformer, nullable: true })
-  fromAddress: string;
-
-  @Column({ length: 100, transformer: lowercaseTransformer, nullable: true })
-  toAddress: string;
-
   @Column({ transformer: lowercaseTransformer, nullable: true })
   txHash: string;
 

@@ -1,6 +1,7 @@
 import { BigNumber, ethers } from 'ethers';
 
 import { ethClient } from '../clients';
+import { IFundingProof } from '../types';
 import getAbiAndAddress from './getAbiAndAddress';
 
 interface IRedemptionDetails {
@@ -13,10 +14,10 @@ interface IRedemptionDetails {
   outpoint: string;
 }
 
-interface IRegisteredPubKeyEvent {
-  _depositContractAddress: string;
-  _signingGroupKeyX: any;
-  _signingGroupKeyY: any;
+interface IRegisteredPubkeyEvent {
+  depositAddress: string;
+  x: string;
+  y: string;
 }
 
 const { abi, address } = getAbiAndAddress('TBTCSystem');
@@ -57,31 +58,29 @@ export async function getRedemptionDetailsFromEvent(
   };
 }
 
-export async function getRegisteredPubKeyEvent(
-  depositAddress: string,
-  fromBlock: number
-): Promise<IRegisteredPubKeyEvent> {
-  const [event] = await contract.queryFilter(contract.filters.RegisteredPubKey(depositAddress), fromBlock);
+export async function getOrWaitForRegisteredPubkeyEvent(depositAddress: string, fromBlock: number) {
+  const event = await getRawRegisteredPubkeyEvent(depositAddress, fromBlock);
 
-  const [_depositContractAddress, _signingGroupKeyX, _signingGroupKeyY] = event.args;
-
-  return { _depositContractAddress, _signingGroupKeyX, _signingGroupKeyY };
-}
-
-export async function waitOnRegisteredPubKeyEvent(
-  depositAddress: string,
-  fromBlock: number
-): Promise<IRegisteredPubKeyEvent> {
-  try {
-    const event = await getRegisteredPubKeyEvent(depositAddress, fromBlock);
-    return event;
-  } catch (e) {
-    return new Promise<IRegisteredPubKeyEvent>((resolve, reject) => {
-      contract.on(contract.filters.SignatureSubmitted(depositAddress), () => {
-        resolve(getRegisteredPubKeyEvent(depositAddress, fromBlock));
-      });
-    });
+  if (event) {
+    return parseRegisteredPubkeyEvent(event);
   }
+  return new Promise<IRegisteredPubkeyEvent>((resolve, reject) => {
+    contract.on(contract.filters.RegisteredPubkey(depositAddress), () => {
+      resolve(getRegisteredPubkeyEvent(depositAddress, fromBlock));
+    });
+  });
+}
+async function getRegisteredPubkeyEvent(depositAddress: string, fromBlock: number) {
+  const event = await getRawRegisteredPubkeyEvent(depositAddress, fromBlock);
+  return parseRegisteredPubkeyEvent(event);
+}
+async function getRawRegisteredPubkeyEvent(depositAddress: string, fromBlock: number): Promise<ethers.Event> {
+  const [event] = await contract.queryFilter(contract.filters.RegisteredPubkey(depositAddress), fromBlock);
+  return event;
+}
+function parseRegisteredPubkeyEvent(event: ethers.Event): IRegisteredPubkeyEvent {
+  const [depositAddress, x, y] = event.args;
+  return { depositAddress, x, y };
 }
 
 export async function getNewDepositFeeEstimate(): Promise<BigNumber> {

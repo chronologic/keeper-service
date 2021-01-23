@@ -19,15 +19,15 @@ import {
 } from './operationLogHelper';
 import { getDeposit } from '../depositHelper';
 
-const logger = createLogger('redemptionProof');
+const logger = createLogger('fundingProof');
 
-export async function ensureRedemptionProofProvided(deposit: Deposit): Promise<Deposit> {
-  logger.info(`Ensuring redemption proof provided for deposit ${deposit.depositAddress}...`);
+export async function ensureFundingProofProvided(deposit: Deposit): Promise<Deposit> {
+  logger.info(`Ensuring funding proof provided for deposit ${deposit.depositAddress}...`);
   try {
-    // TODO: double check status on blockchain - AWAITING_WITHDRAWAL_PROOF
-    const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_PROOF);
+    // TODO: double check status on blockchain - AWAITING_BTC_FUNDING_PROOF
+    const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.MINT_PROVIDE_FUNDING_PROOF);
     if (hasOperationLogInStatus(logs, DepositOperationLogStatus.CONFIRMED)) {
-      logger.info(`Redemption proof is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
+      logger.info(`Funding proof is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
       return getDeposit(deposit.depositAddress);
     }
 
@@ -36,12 +36,12 @@ export async function ensureRedemptionProofProvided(deposit: Deposit): Promise<D
       logger.info(
         `Redemption proof is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
       );
-      await confirmRedemptionProofProvided(deposit, broadcastedLog.txHash);
+      await confirmFundingProofProvided(deposit, broadcastedLog.txHash);
       return getDeposit(deposit.depositAddress);
     }
 
-    const tx = await provideRedemptionProof(deposit);
-    await confirmRedemptionProofProvided(deposit, tx.hash);
+    const tx = await provideFundingProof(deposit);
+    await confirmFundingProofProvided(deposit, tx.hash);
   } catch (e) {
     // TODO: handle errors inside functions above
     console.log(e);
@@ -52,17 +52,17 @@ export async function ensureRedemptionProofProvided(deposit: Deposit): Promise<D
   return getDeposit(deposit.depositAddress);
 }
 
-async function confirmRedemptionProofProvided(deposit: Deposit, txHash: string): Promise<void> {
-  logger.info(`Waiting for confirmations for redemption proof for deposit ${deposit.depositAddress}...`);
+async function confirmFundingProofProvided(deposit: Deposit, txHash: string): Promise<void> {
+  logger.info(`Waiting for confirmations for funding proof for deposit ${deposit.depositAddress}...`);
   const { receipt, success } = await ethClient.confirmTransaction(txHash);
 
   // TODO: check tx status
-  logger.info(`Got confirmations for redemption proof for deposit ${deposit.depositAddress}.`);
+  logger.info(`Got confirmations for funding proof for deposit ${deposit.depositAddress}.`);
   logger.debug(JSON.stringify(receipt, null, 2));
 
   const log = new DepositOperationLog();
   log.txHash = txHash;
-  log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_PROOF;
+  log.operationType = DepositOperationLogType.MINT_PROVIDE_FUNDING_PROOF;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = success ? DepositOperationLogStatus.CONFIRMED : DepositOperationLogStatus.ERROR;
   log.blockchainType = BlockchainType.ETH;
@@ -72,30 +72,27 @@ async function confirmRedemptionProofProvided(deposit: Deposit, txHash: string):
   await storeOperationLog(deposit, log);
 }
 
-async function provideRedemptionProof(deposit: Deposit): Promise<IEthTx> {
-  const depositContract = depositContractAt(deposit.depositAddress);
+async function provideFundingProof(deposit: Deposit): Promise<IEthTx> {
+  const depositContract = depositContractAt(deposit.mintedDeposit.depositAddress);
   const minConfirmations = await tbtcConstants.getMinBtcConfirmations();
 
-  const btcReceptionLogs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_BTC_RECEPTION);
-  const confirmedBtcReception = getOperationLogInStatus(btcReceptionLogs, DepositOperationLogStatus.CONFIRMED);
+  const btcFundLogs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.MINT_FUND_BTC);
+  const btcFundLog = getOperationLogInStatus(btcFundLogs, DepositOperationLogStatus.CONFIRMED);
 
-  const outputPosition = -1;
-  const proofArgs = await btcClient.constructFundingProof(
-    confirmedBtcReception.txHash,
-    outputPosition,
-    minConfirmations
-  );
+  // the system always puts the funding tx in position 0
+  const outputPosition = 0;
+  const proofArgs = await btcClient.constructFundingProof(btcFundLog.txHash, outputPosition, minConfirmations);
 
   // this may fail with "not at current or previous difficulty"
   // DepositUtils.sol contract will compare submitted headers with current and previous difficulty
   // and will revert if not a match
-  const tx = await depositContract.provideRedemptionProof(proofArgs);
+  const tx = await depositContract.provideBTCFundingProof(proofArgs);
 
   logger.debug(`Redemption proof tx:\n${JSON.stringify(tx, null, 2)}`);
 
   const log = new DepositOperationLog();
   log.txHash = tx.hash;
-  log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_PROOF;
+  log.operationType = DepositOperationLogType.MINT_PROVIDE_FUNDING_PROOF;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.BROADCASTED;
   log.blockchainType = BlockchainType.ETH;

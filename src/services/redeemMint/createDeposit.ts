@@ -22,7 +22,7 @@ import { buildAndStoreDepoist, getDeposit, storeDeposit } from '../depositHelper
 
 const logger = createLogger('createDeposit');
 
-export async function ensureDepositCreated(deposit: Deposit, depositContract: IDepositContract): Promise<Deposit> {
+export async function ensureDepositCreated(deposit: Deposit): Promise<Deposit> {
   logger.info(`Ensuring deposit created for previous deposit ${deposit.depositAddress}...`);
   try {
     // TODO: double check status on blockchain
@@ -56,30 +56,28 @@ export async function ensureDepositCreated(deposit: Deposit, depositContract: ID
 
 async function confirmDepositCreated(deposit: Deposit, txHash: string): Promise<void> {
   logger.info(`Waiting for confirmations for deposit creation for deposit ${deposit.depositAddress}...`);
-  const txReceipt = await ethClient.confirmTransaction(txHash);
+  const { receipt, success } = await ethClient.confirmTransaction(txHash);
   const tx = await ethClient.httpProvider.getTransaction(txHash);
 
   logger.info(`Got confirmations for deposit creation for deposit ${deposit.depositAddress}.`);
-  logger.debug(JSON.stringify(txReceipt, null, 2));
+  logger.debug(JSON.stringify(receipt, null, 2));
 
-  const createdEvent = tbtcSystem.findLog(txReceipt.logs, 'Created');
+  const createdEvent = tbtcSystem.findLog(receipt.logs, 'Created');
   const [createdDepositAddress]: [string] = createdEvent.args as any;
   console.log({ createdDepositAddress });
 
   // eslint-disable-next-line no-param-reassign
-  deposit.mintedDeposit = await buildAndStoreDepoist(createdDepositAddress, txReceipt.blockNumber);
+  deposit.mintedDeposit = await buildAndStoreDepoist(createdDepositAddress, receipt.blockNumber);
 
   await storeDeposit(deposit);
 
   const log = new DepositOperationLog();
-  const txCost = txReceipt.gasUsed.add(tx.value);
+  const txCost = receipt.gasUsed.add(tx.value);
   log.txHash = txHash;
-  log.fromAddress = ethClient.defaultWallet.address;
-  log.toAddress = txReceipt.to;
   log.operationType = DepositOperationLogType.MINT_CREATE_DEPOSIT;
   log.direction = DepositOperationLogDirection.OUT;
-  log.status = DepositOperationLogStatus.CONFIRMED;
-  log.blockchainType = BlockchainType.ETHEREUM;
+  log.status = success ? DepositOperationLogStatus.CONFIRMED : DepositOperationLogStatus.ERROR;
+  log.blockchainType = BlockchainType.ETH;
   log.txCostEthEquivalent = txCost;
   log.txCostUsdEquivalent = await priveFeed.convertWeiToUsd(txCost);
 
@@ -93,12 +91,10 @@ async function createDeposit(deposit: Deposit): Promise<IEthTx> {
 
   const log = new DepositOperationLog();
   log.txHash = tx.hash;
-  log.fromAddress = ethClient.defaultWallet.address;
-  log.toAddress = depositFactory.contract.address;
   log.operationType = DepositOperationLogType.MINT_CREATE_DEPOSIT;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.BROADCASTED;
-  log.blockchainType = BlockchainType.ETHEREUM;
+  log.blockchainType = BlockchainType.ETH;
 
   await storeOperationLog(deposit, log);
 

@@ -21,12 +21,11 @@ import {
   hasOperationLogInStatus,
   storeOperationLog,
 } from './operationLogHelper';
-import { ETH_MIN_CONFIRMATIONS } from '../../constants';
 import { getDeposit } from '../depositHelper';
 
 const logger = createLogger('requestRedemption');
 
-export async function ensureRedemptionRequested(deposit: Deposit, depositContract: IDepositContract): Promise<Deposit> {
+export async function ensureRedemptionRequested(deposit: Deposit): Promise<Deposit> {
   logger.info(`Ensuring redemption requested for deposit ${deposit.depositAddress}...`);
   try {
     // TODO: double check status on blockchain - ACTIVE / COURTESY_CALL
@@ -47,7 +46,7 @@ export async function ensureRedemptionRequested(deposit: Deposit, depositContrac
       return getDeposit(deposit.depositAddress);
     }
 
-    const tx = await requestRedemption(deposit, depositContract);
+    const tx = await requestRedemption(deposit);
     await confirmRedemptionRequested(deposit, tx.hash);
   } catch (e) {
     // TODO: handle errors inside functions above
@@ -61,28 +60,27 @@ export async function ensureRedemptionRequested(deposit: Deposit, depositContrac
 
 async function confirmRedemptionRequested(deposit: Deposit, txHash: string): Promise<void> {
   logger.info(`Waiting for confirmations for redemption request for deposit ${deposit.depositAddress}...`);
-  const txReceipt = await ethClient.confirmTransaction(txHash);
+  const { receipt, success } = await ethClient.confirmTransaction(txHash);
 
   logger.info(`Got confirmations for redemption request for deposit ${deposit.depositAddress}.`);
-  logger.debug(JSON.stringify(txReceipt, null, 2));
+  logger.debug(JSON.stringify(receipt, null, 2));
 
   const redemptionFeeEth = await depositContractAt(deposit.depositAddress).getRedemptionFee();
-  const txCost = txReceipt.gasUsed.add(redemptionFeeEth);
+  const txCost = receipt.gasUsed.add(redemptionFeeEth);
   const log = new DepositOperationLog();
   log.txHash = txHash;
-  log.fromAddress = ethClient.defaultWallet.address;
-  log.toAddress = vendingMachine.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_REDEMPTION_REQUEST;
   log.direction = DepositOperationLogDirection.OUT;
-  log.status = DepositOperationLogStatus.CONFIRMED;
-  log.blockchainType = BlockchainType.ETHEREUM;
+  log.status = success ? DepositOperationLogStatus.CONFIRMED : DepositOperationLogStatus.ERROR;
+  log.blockchainType = BlockchainType.ETH;
   log.txCostEthEquivalent = txCost;
   log.txCostUsdEquivalent = await priceFeed.convertWeiToUsd(txCost);
 
   await storeOperationLog(deposit, log);
 }
 
-async function requestRedemption(deposit: Deposit, depositContract: IDepositContract): Promise<IEthTx> {
+async function requestRedemption(deposit: Deposit): Promise<IEthTx> {
+  const depositContract = depositContractAt(deposit.depositAddress);
   const redemptionAddressIndex = deposit.redemptionAddressIndex || (await getNextBtcAddressIndex());
   const redemptionAddress = deposit.redemptionAddress || btcClient.getAddress(redemptionAddressIndex);
   const redeemerOutputScript = btcClient.addressToRedeemerScript(redemptionAddress);
@@ -114,12 +112,10 @@ async function requestRedemption(deposit: Deposit, depositContract: IDepositCont
 
   const log = new DepositOperationLog();
   log.txHash = tx.hash;
-  log.fromAddress = ethClient.defaultWallet.address;
-  log.toAddress = vendingMachine.contract.address;
   log.operationType = DepositOperationLogType.REDEEM_REDEMPTION_REQUEST;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.BROADCASTED;
-  log.blockchainType = BlockchainType.ETHEREUM;
+  log.blockchainType = BlockchainType.ETH;
 
   await storeOperationLog(deposit, log);
 

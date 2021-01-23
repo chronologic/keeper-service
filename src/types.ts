@@ -1,4 +1,3 @@
-import { number } from 'bitcoinjs-lib/types/script';
 import { BigNumber } from 'ethers';
 
 // status codes from the Deposit contract
@@ -46,7 +45,8 @@ export enum DepositOperationLogType {
   MINT_RETRIEVE_PUBKEY = 'MINT_RETRIEVE_PUBKEY',
   MINT_FUND_BTC = 'MINT_FUND_BTC',
   MINT_PROVIDE_FUNDING_PROOF = 'MINT_PROVIDE_FUNDING_PROOF',
-  MINT_APPROVE_TDT = 'MINT_APPROVE_TDT', // TODO: approve once?
+  MINT_APPROVE_AND_CALL_TDT = 'MINT_APPROVE_AND_CALL_TDT', // TODO: this may replace all the actions below
+  MINT_APPROVE_TDT = 'MINT_APPROVE_TDT',
   MINT_TDT_TO_TBTC = 'MINT_TDT_TO_TBTC',
   MINT_TBTC_RECEPTION = 'MINT_TBTC_RECEPTION',
 }
@@ -63,14 +63,15 @@ export enum DepositOperationLogStatus {
 }
 
 export enum BlockchainType {
-  ETHEREUM = 'ETHEREUM',
-  BITCOIN = 'BITCOIN',
+  ETH = 'ETH',
+  BTC = 'BTC',
 }
 
 export interface IDepositContract {
   getStatusCode(): Promise<number>;
   getKeepAddress(): Promise<string>;
   getLotSizeSatoshis(): Promise<BigNumber>;
+  getSignerFeeTbtc(): Promise<BigNumber>;
   getCollateralizationPercent(): Promise<number>;
   getUndercollateralizedThresholdPercent(): Promise<number>;
   getRedemptionCost(): Promise<BigNumber>;
@@ -78,6 +79,8 @@ export interface IDepositContract {
   getUtxoValue(): Promise<number>;
   provideRedemptionSignature(v: string, r: string, s: string): Promise<IEthTx>;
   provideRedemptionProof(proof: IFundingProof): Promise<IEthTx>;
+  retrieveSignerPubkey(): Promise<IEthTx>;
+  provideBTCFundingProof(proof: IFundingProof): Promise<IEthTx>;
 }
 
 export interface IEthTx {

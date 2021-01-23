@@ -169,6 +169,7 @@ interface IBitcoinHelpers {
       outpoint?: string
     ): Promise<TransactionInBlock | null>;
     findAllUnspentWithClient(electrumClient: ElectrumClient, receiverScript: string): Promise<TransactionInBlock[]>;
+    waitForNextBlock(): Promise<any>;
   };
 }
 
@@ -866,6 +867,21 @@ const BitcoinHelpers: IBitcoinHelpers = {
       }
 
       return result;
+    },
+    async waitForNextBlock(): Promise<any> {
+      return new Promise((resolve) => {
+        const blocks = [];
+        BitcoinHelpers.withElectrumClient(async (electrumClient: ElectrumClient) =>
+          electrumClient.onNewBlock((block: any) => {
+            blocks.push(block);
+
+            if (blocks.length > 1) {
+              return resolve(block);
+            }
+            return null;
+          })
+        );
+      });
     },
   },
 };

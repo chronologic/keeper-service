@@ -10,6 +10,7 @@ interface IKeepContract {
   getMembers(): Promise<string[]>;
   getSignatureSubmittedEvent(expectedDigest: string, fromBlock: number): Promise<ISignatureSubmittedEvent>;
   getOrWaitForSignatureSubmittedEvent(expectedDigest: string, fromBlock: number): Promise<ISignatureSubmittedEvent>;
+  getOrWaitForPublicKeyPublishedEvent(fromBlock: number): Promise<IPublicKeyPublishedEvent>;
 }
 
 interface ISignatureSubmittedEvent {
@@ -18,6 +19,8 @@ interface ISignatureSubmittedEvent {
   s: string;
   recoveryID: number;
 }
+
+interface IPublicKeyPublishedEvent {}
 
 export default function getContractAt(address: string): IKeepContract {
   const contract = new ethers.Contract(address, keepAbi, ethClient.defaultWallet);
@@ -28,6 +31,7 @@ export default function getContractAt(address: string): IKeepContract {
     getOpenedTimestamp,
     getSignatureSubmittedEvent,
     getOrWaitForSignatureSubmittedEvent,
+    getOrWaitForPublicKeyPublishedEvent,
   };
 
   async function getBondedEth() {
@@ -65,5 +69,30 @@ export default function getContractAt(address: string): IKeepContract {
         resolve(getSignatureSubmittedEvent(expectedDigest, fromBlock));
       });
     });
+  }
+
+  async function getOrWaitForPublicKeyPublishedEvent(fromBlock: number) {
+    const event = await getRawPublicKeyPublishedEvent(fromBlock);
+
+    if (event) {
+      return parsePublicKeyPublishedEvent(event);
+    }
+    return new Promise<IPublicKeyPublishedEvent>((resolve, reject) => {
+      contract.on(contract.filters.PublicKeyPublished(), () => {
+        resolve(getPublicKeyPublishedEvent(fromBlock));
+      });
+    });
+  }
+  async function getPublicKeyPublishedEvent(fromBlock: number) {
+    const event = await getRawPublicKeyPublishedEvent(fromBlock);
+    return parsePublicKeyPublishedEvent(event);
+  }
+  async function getRawPublicKeyPublishedEvent(fromBlock: number): Promise<ethers.Event> {
+    const [event] = await contract.queryFilter(contract.filters.PublicKeyPublished(), fromBlock);
+    return event;
+  }
+  function parsePublicKeyPublishedEvent(event: ethers.Event): IPublicKeyPublishedEvent {
+    const [digest, r, s, recoveryID] = event.args;
+    return { digest, r, s, recoveryID };
   }
 }

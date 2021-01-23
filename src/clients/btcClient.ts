@@ -7,7 +7,7 @@ import { BigNumber } from 'ethers';
 
 import { ELECTRUMX_HOST, ELECTRUMX_PORT, ELECTRUMX_PROTOCOL, ELECTRUMX_NETWORK, BTC_ZPRV } from '../env';
 import { createLogger } from '../logger';
-import { getAddressAtIndex } from './ethClient';
+import { confirmTransaction, getAddressAtIndex } from './ethClient';
 import { numberToBnBtc } from '../utils';
 import { IFundingProof } from '../types';
 import BitcoinHelpers from './BitcoinHelpers';
@@ -88,6 +88,11 @@ interface IMerkleProof {
   position: number;
 }
 
+export interface IPublicKeyPoint {
+  x: string;
+  y: string;
+}
+
 const logger = createLogger('btcClient');
 
 const MAX_ADDRESS_GAP = 10;
@@ -95,6 +100,7 @@ const NETWORK = getNetworkFromEnv();
 const TEST_ADDRESS = getAddressAtIndex(999999); // "random" address for fee estimation
 // eslint-disable-next-line new-cap
 const wallet = new bip84.fromZPrv(BTC_ZPRV);
+const zpub = wallet.getAccountPublicKey();
 
 BitcoinHelpers.setElectrumConfig({
   protocol: ELECTRUMX_PROTOCOL,
@@ -118,7 +124,7 @@ async function send(toAddress: string, amount: number): Promise<string> {
   // PSBT = Partially Signed Bitcoin Transaction https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
   const psbt = new bjs.Psbt({ network: NETWORK });
 
-  const utxos = await getUnspentUtxosZpubSelf();
+  const utxos = await getWalletUnspentUtxos();
   const txs = await getTxsForUtxos(utxos);
   const { fastestFee } = await estimateFee();
   const estimatedByteLength = utxos.length * 150 + 100; // rough estimate of how many bytes the tx will take up
@@ -184,7 +190,7 @@ async function estimateSendFee(amount: number, toAddress = TEST_ADDRESS): Promis
   // PSBT = Partially Signed Bitcoin Transaction https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
   const psbt = new bjs.Psbt({ network: NETWORK });
 
-  const utxos = await getUnspentUtxosZpubSelf();
+  const utxos = await getWalletUnspentUtxos();
   const txs = await getTxsForUtxos(utxos);
   const { fastestFee } = await estimateFee();
 
@@ -246,11 +252,7 @@ async function getTxsForUtxos(utxos: IUTXO[]): Promise<IRawTx[]> {
   return txs;
 }
 
-async function getUnspentUtxosZpubSelf(): Promise<IUTXO[]> {
-  return getUnspentUtxosZpub(wallet.getAccountPublicKey());
-}
-
-async function getUnspentUtxosZpub(zpub: string): Promise<IUTXO[]> {
+async function getWalletUnspentUtxos(): Promise<IUTXO[]> {
   let allUtxos: IUTXO[] = [];
 
   await requestAndClose(async (client) => {
@@ -326,8 +328,9 @@ async function waitForConfirmations(txHash: string, minConfirmations = 3): Promi
 }
 
 async function waitForNextBlock(): Promise<IBlockHeader> {
-  const res = await requestAndClose((client) => client.blockchain_headers_subscribe());
+  const res = await BitcoinHelpers.Transaction.waitForNextBlock();
 
+  console.log(res);
   return res;
 }
 
@@ -337,11 +340,19 @@ async function getTransaction(txHash: string): Promise<IRawTx> {
   return tx;
 }
 
-async function getBalanceZpubSelf(): Promise<IRawBalance> {
-  return getBalanceZpub(wallet.getAccountPublicKey());
+async function getTransactionFee(tx: IRawTx): Promise<number> {
+  const valueOut = tx.vout.reduce((sum, v) => sum + v.value, 0);
+  let valueIn = 0;
+
+  for (const vin of tx.vin) {
+    const vinTx = await getTransaction(vin.txid);
+    valueIn += vinTx.vout[vin.vout].value;
+  }
+
+  return numberToBnBtc(valueIn - valueOut).toNumber();
 }
 
-async function getBalanceZpub(zpub: string): Promise<IRawBalance> {
+async function getWalletBalance(): Promise<IRawBalance> {
   const totalBalance: IRawBalance = {
     confirmed: 0,
     unconfirmed: 0,
@@ -411,7 +422,7 @@ function addressToScript(address: string): Buffer {
 
 function getNetworkFromEnv(): bjs.networks.Network {
   switch (ELECTRUMX_NETWORK) {
-    case 'mainnet': {
+    case 'main': {
       return bjs.networks.bitcoin;
     }
     case 'testnet': {
@@ -497,6 +508,14 @@ async function constructFundingProof(
   };
 }
 
+function publicKeyPointToBitcoinAddress(publicKeyPoint: IPublicKeyPoint): string {
+  return BitcoinHelpers.Address.publicKeyPointToP2WPKHAddress(
+    publicKeyPoint.x,
+    publicKeyPoint.y,
+    ELECTRUMX_NETWORK as any
+  );
+}
+
 export {
   send,
   estimateSendFee,
@@ -506,9 +525,10 @@ export {
   getTransaction,
   getTxHistory,
   getBalance,
-  getBalanceZpub,
-  getBalanceZpubSelf,
+  getWalletBalance,
   addressToScript,
   addressToRedeemerScript,
   constructFundingProof,
+  publicKeyPointToBitcoinAddress,
+  getTransactionFee,
 };

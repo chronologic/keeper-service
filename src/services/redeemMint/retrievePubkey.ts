@@ -1,13 +1,10 @@
-import { BigNumber } from 'ethers';
-
-import { tbtcSystem, keepContractAt } from '../../contracts';
+import { keepContractAt, depositContractAt } from '../../contracts';
 import { Deposit } from '../../entities/Deposit';
 import {
   BlockchainType,
   DepositOperationLogDirection,
   DepositOperationLogStatus,
   DepositOperationLogType,
-  IDepositContract,
   IEthTx,
 } from '../../types';
 import { createLogger } from '../../logger';
@@ -24,10 +21,10 @@ import { getDeposit } from '../depositHelper';
 
 const logger = createLogger('redemptionSig');
 
-export async function ensurePubkeyRetrieved(deposit: Deposit, depositContract: IDepositContract): Promise<Deposit> {
+export async function ensurePubkeyRetrieved(deposit: Deposit): Promise<Deposit> {
   logger.info(`Ensuring pubkey provided for deposit ${deposit.depositAddress}...`);
   try {
-    // TODO: double check status on blockchain - AWAITING_WITHDRAWAL_SIGNATURE
+    // TODO: double check status on blockchain - AWAITING_SIGNER_SETUP
     const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.MINT_RETRIEVE_PUBKEY);
     if (hasOperationLogInStatus(logs, DepositOperationLogStatus.CONFIRMED)) {
       logger.info(`Pubkey retrieved is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
@@ -43,7 +40,7 @@ export async function ensurePubkeyRetrieved(deposit: Deposit, depositContract: I
       return getDeposit(deposit.depositAddress);
     }
 
-    const tx = await retrievePubkey(deposit, depositContract);
+    const tx = await retrievePubkey(deposit);
     await confirmPubkeyRetrieved(deposit, tx.hash);
   } catch (e) {
     // TODO: handle errors inside functions above
@@ -56,80 +53,42 @@ export async function ensurePubkeyRetrieved(deposit: Deposit, depositContract: I
 }
 
 async function confirmPubkeyRetrieved(deposit: Deposit, txHash: string): Promise<void> {
-  logger.info(`Waiting for confirmations for redemption sig for deposit ${deposit.depositAddress}...`);
-  const txReceipt = await ethClient.confirmTransaction(txHash);
+  logger.info(`Waiting for confirmations for retrieving pubkey for deposit ${deposit.depositAddress}...`);
+  const { receipt, success } = await ethClient.confirmTransaction(txHash);
 
   // TODO: check tx status
-  logger.info(`Got confirmations for redemption sig for deposit ${deposit.depositAddress}.`);
-  logger.debug(JSON.stringify(txReceipt, null, 2));
+  logger.info(`Got confirmations for retrieving pubkey for deposit ${deposit.depositAddress}.`);
+  logger.debug(JSON.stringify(receipt, null, 2));
 
   const log = new DepositOperationLog();
   log.txHash = txHash;
-  log.fromAddress = ethClient.defaultWallet.address;
-  log.toAddress = deposit.depositAddress;
-  log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_SIG;
+  log.operationType = DepositOperationLogType.MINT_RETRIEVE_PUBKEY;
+  log.status = success ? DepositOperationLogStatus.CONFIRMED : DepositOperationLogStatus.ERROR;
   log.direction = DepositOperationLogDirection.OUT;
-  log.status = DepositOperationLogStatus.CONFIRMED;
-  log.blockchainType = BlockchainType.ETHEREUM;
-  log.txCostEthEquivalent = txReceipt.gasUsed;
-  log.txCostUsdEquivalent = await priceFeed.convertWeiToUsd(txReceipt.gasUsed);
+  log.blockchainType = BlockchainType.ETH;
+  log.txCostEthEquivalent = receipt.gasUsed;
+  log.txCostUsdEquivalent = await priceFeed.convertWeiToUsd(receipt.gasUsed);
 
   await storeOperationLog(deposit, log);
 }
 
-async function retrievePubkey(deposit: Deposit, depositContract: IDepositContract): Promise<IEthTx> {
-  const redemptionRequestLogs = await getOperationLogsOfType(
-    deposit.id,
-    DepositOperationLogType.REDEEM_REDEMPTION_REQUEST
-  );
-  const confirmedRedemptionRequest = getOperationLogInStatus(
-    redemptionRequestLogs,
-    DepositOperationLogStatus.CONFIRMED
-  );
-  logger.info(`Fetching redemption details from event for deposit ${deposit.depositAddress}...`);
-  const { digest } = await tbtcSystem.getRedemptionDetailsFromEvent(
-    confirmedRedemptionRequest.txHash,
-    deposit.depositAddress,
-    deposit.blockNumber
-  );
+async function retrievePubkey(deposit: Deposit): Promise<IEthTx> {
+  const keepContract = keepContractAt(deposit.mintedDeposit.keepAddress);
+  logger.info(`Waiting for PublicKeyPublished event for deposit ${deposit.mintedDeposit.depositAddress}...`);
+  await keepContract.getOrWaitForPublicKeyPublishedEvent(deposit.mintedDeposit.blockNumber);
 
-  logger.info(`Waiting for signature submitted from for deposit ${deposit.depositAddress}...`);
-  const { r, s, recoveryID } = await keepContractAt(deposit.keepAddress).getOrWaitForSignatureSubmittedEvent(
-    digest,
-    deposit.blockNumber
-  );
+  const depositContract = depositContractAt(deposit.mintedDeposit.depositAddress);
+  logger.info(`Retrieving signer pubkey for deposit ${deposit.mintedDeposit.depositAddress}...`);
+  const tx = await depositContract.retrieveSignerPubkey();
 
-  // A constant in the Ethereum ECDSA signature scheme, used for public key recovery [1]
-  // Value is inherited from Bitcoin's Electrum wallet [2]
-  // [1] https://bitcoin.stackexchange.com/questions/38351/ecdsa-v-r-s-what-is-v/38909#38909
-  // [2] https://github.com/ethereum/EIPs/issues/155#issuecomment-253810938
-  const ETHEREUM_ECDSA_RECOVERY_V = BigNumber.from(27);
-  const v = BigNumber.from(recoveryID).add(ETHEREUM_ECDSA_RECOVERY_V);
-
-  logger.debug(
-    `Sending redemption sig tx for deposit ${deposit.depositAddress} with params:\n${JSON.stringify(
-      {
-        v: v.toString(),
-        r: r.toString(),
-        s: s.toString(),
-      },
-      null,
-      2
-    )}`
-  );
-
-  const tx = await depositContract.provideRedemptionSignature(v.toString(), r.toString(), s.toString());
-
-  logger.debug(`Redemption sig tx:\n${JSON.stringify(tx, null, 2)}`);
+  logger.debug(`Retrieve signer pubkey tx:\n${JSON.stringify(tx, null, 2)}`);
 
   const log = new DepositOperationLog();
   log.txHash = tx.hash;
-  log.fromAddress = ethClient.defaultWallet.address;
-  log.toAddress = deposit.depositAddress;
-  log.operationType = DepositOperationLogType.REDEEM_PROVIDE_REDEMPTION_SIG;
+  log.operationType = DepositOperationLogType.MINT_RETRIEVE_PUBKEY;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.BROADCASTED;
-  log.blockchainType = BlockchainType.ETHEREUM;
+  log.blockchainType = BlockchainType.ETH;
 
   await storeOperationLog(deposit, log);
 

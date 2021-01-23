@@ -14,7 +14,7 @@
     "fix-lint": "./node_modules/eslint/bin/eslint.js  src --ext .ts --fix"
   },
   "dependencies": {
-    "@keep-network/tbtc": "^1.1.1-rc.4",
+    "@keep-network/tbtc": "1.1.0",
     "bcoin": "^1.0.2",
     "bcrypto": "^5.3.0",
     "bip84": "^0.2.4",
@@ -35,7 +35,7 @@
     "winston": "3.3.3"
   },
   "devDependencies": {
-    "@keep-network/tbtc-ropsten": "npm:@keep-network/tbtc@^1.1.1-rc.3",
+    "@keep-network/tbtc-ropsten": "npm:@keep-network/tbtc@1.1.1-rc.3",
     "@types/bn.js": "^5.1.0",
     "@types/jest": "26.0.19",
     "@types/node": "14.14.14",

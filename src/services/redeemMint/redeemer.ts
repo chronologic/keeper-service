@@ -11,6 +11,12 @@ import { ensureBtcReceived } from './btcReception';
 import { getDeposit } from '../depositHelper';
 import { ensureRedemptionProofProvided } from './redemptionProof';
 import { ensureDepositCreated } from './createDeposit';
+import { ensurePubkeyRetrieved } from './retrievePubkey';
+import { ensureBtcFunded } from './fundBtc';
+import { ensureFundingProofProvided } from './fundingProof';
+import { ensureApproveAndCallTdt } from './approveAndCallTdt';
+import { ensureApproveTdt } from './approveTdt';
+import { ensureTdtToTbtc } from './tdtToTbtc';
 
 const logger = createLogger('redemption');
 let busy = false;
@@ -23,6 +29,9 @@ export async function init(): Promise<any> {
   console.log('deposit is in status:', DepositStatus[statusCode]);
   processDeposit(deposit);
   // checkForDepositToProcess();
+  // const deposit = depositContractAt('0x41f92f9c627132a613a14de9a28aebc721607b90');
+  // const statusCode = await deposit.getStatusCode();
+  // console.log('deposit is in status:', DepositStatus[statusCode]);
 }
 
 export async function checkForDepositToProcess(): Promise<void> {
@@ -56,21 +65,38 @@ async function getDepositToProcess(): Promise<Deposit> {
 async function processDeposit(deposit: Deposit): Promise<void> {
   // TODO: change deposit state to REDEEMING
   // TODO: check for errors, if 3 errors in one operation type - set deposit state to ERROR
-  const depositContract = depositContractAt(deposit.depositAddress);
+  // TODO: between each call:
+  // - update deposit
+  // - check deposit status
+  // - check balances
 
-  let updatedDeposit = await ensureApproveSpendingTbtc(deposit, depositContract);
+  let updatedDeposit = await ensureApproveSpendingTbtc(deposit);
 
-  updatedDeposit = await ensureRedemptionRequested(updatedDeposit, depositContract);
+  updatedDeposit = await ensureRedemptionRequested(updatedDeposit);
 
-  updatedDeposit = await ensureRedemptionSigProvided(updatedDeposit, depositContract);
+  updatedDeposit = await ensureRedemptionSigProvided(updatedDeposit);
 
   updatedDeposit = await ensureBtcReceived(updatedDeposit);
 
-  updatedDeposit = await ensureRedemptionProofProvided(updatedDeposit, depositContract);
+  updatedDeposit = await ensureRedemptionProofProvided(updatedDeposit);
 
   // MINTING ///////////////////////
 
-  updatedDeposit = await ensureDepositCreated(updatedDeposit, depositContract);
+  updatedDeposit = await ensureDepositCreated(updatedDeposit);
+
+  updatedDeposit = await ensurePubkeyRetrieved(updatedDeposit);
+
+  updatedDeposit = await ensureBtcFunded(updatedDeposit);
+
+  updatedDeposit = await ensureFundingProofProvided(updatedDeposit);
+
+  // updatedDeposit = await ensureApproveAndCallTdt(updatedDeposit);
+
+  updatedDeposit = await ensureApproveTdt(updatedDeposit);
+
+  updatedDeposit = await ensureTdtToTbtc(updatedDeposit);
+
+  // refresh system balances
 }
 
 export default { init };

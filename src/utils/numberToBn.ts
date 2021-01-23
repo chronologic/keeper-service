@@ -1,4 +1,4 @@
-import { BigNumber } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { BTC_DECIMALS, ETH_DECIMALS } from '../constants';
 
 export function numberToBnEth(num: number): BigNumber {
@@ -10,9 +10,13 @@ export function numberToBnBtc(num: number): BigNumber {
 }
 
 export function numberToBn(num: number, decimals = ETH_DECIMALS): BigNumber {
-  const numStr = num.toString();
+  let numStr = num.toString();
   const numDecimals = (numStr.split('.')[1] || '').length;
-  const numStrClean = numStr.replace('.', '');
 
-  return BigNumber.from(numStrClean).mul(BigNumber.from(10).pow(decimals - numDecimals));
+  if (numDecimals > decimals) {
+    const decimalPointIndex = numStr.indexOf('.');
+    numStr = numStr.substring(0, decimalPointIndex + decimals + 1);
+  }
+
+  return ethers.utils.parseUnits(`${numStr}`, decimals);
 }

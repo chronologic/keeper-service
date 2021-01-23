@@ -12,14 +12,15 @@ import { buildDeposit, storeDeposit } from './depositHelper';
 const logger = createLogger('depositSync');
 
 async function init(): Promise<void> {
-  await listenForNewDeposists();
+  await listenForNewDeposits();
   // listenForDepositStateChanges();
   await syncDepositsFromLogs();
 }
 
-async function listenForNewDeposists(): Promise<void> {
+async function listenForNewDeposits(): Promise<void> {
   tbtcSystem.contract.on('Funded', async (...args) => {
     const [, , , event] = args;
+    console.log('FUNDED EVENT', args);
     logger.info(`⭐ new Funded event at block ${event.blockNumber}`);
     await maybeStoreDepositFundedEvent(event);
   });

@@ -3,6 +3,8 @@ import { ethers } from 'ethers';
 import { ETH_NETWORK, ETH_XPRV, INFURA_API_KEY } from '../env';
 import { ETH_MIN_CONFIRMATIONS, SECOND_MILLIS } from '../constants';
 
+const TX_STATUS_FAILED = 0;
+
 export const wsProvider = new ethers.providers.InfuraWebSocketProvider(ETH_NETWORK, INFURA_API_KEY);
 export const httpProvider = new ethers.providers.InfuraProvider(ETH_NETWORK, INFURA_API_KEY);
 // lower polling interval to reduce resource usage
@@ -19,11 +21,18 @@ export function getPrivKeyAtIndex(index: number): string {
   return hdNode.derivePath(index.toString()).privateKey;
 }
 
-export async function confirmTransaction(txHash: string): Promise<ethers.providers.TransactionReceipt> {
-  const txReceipt = await httpProvider.waitForTransaction(txHash, ETH_MIN_CONFIRMATIONS);
-  if (txReceipt.status === 0) {
-    throw new Error(`Transaction failed ${txHash} ${JSON.stringify(txReceipt)}`);
-  }
+export async function confirmTransaction(
+  txHash: string
+): Promise<{ receipt: ethers.providers.TransactionReceipt; success: boolean }> {
+  const receipt = await httpProvider.waitForTransaction(txHash, ETH_MIN_CONFIRMATIONS);
+  const success = isTransactionSuccessful(receipt);
 
-  return txReceipt;
+  return {
+    receipt,
+    success,
+  };
+}
+
+export function isTransactionSuccessful(txReceipt: ethers.providers.TransactionReceipt): boolean {
+  return txReceipt.status !== TX_STATUS_FAILED;
 }

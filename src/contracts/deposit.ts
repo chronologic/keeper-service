@@ -13,6 +13,7 @@ export default function getContractAt(address: string): IDepositContract {
   return {
     getKeepAddress,
     getLotSizeSatoshis,
+    getSignerFeeTbtc,
     getStatusCode,
     getCollateralizationPercent,
     getUndercollateralizedThresholdPercent,
@@ -21,6 +22,8 @@ export default function getContractAt(address: string): IDepositContract {
     getUtxoValue,
     provideRedemptionSignature,
     provideRedemptionProof,
+    retrieveSignerPubkey,
+    provideBTCFundingProof,
   };
 
   async function getKeepAddress() {
@@ -30,6 +33,10 @@ export default function getContractAt(address: string): IDepositContract {
   async function getLotSizeSatoshis() {
     const [lotSize] = await contract.functions.lotSizeSatoshis();
     return lotSize;
+  }
+  async function getSignerFeeTbtc() {
+    const [fee] = await contract.functions.getSignerFeeTbtc();
+    return fee;
   }
   async function getStatusCode() {
     const [state] = await contract.functions.currentState();
@@ -78,5 +85,30 @@ export default function getContractAt(address: string): IDepositContract {
       bitcoinHeaders,
       { gasLimit: 1_000_000 }
     );
+  }
+  async function provideBTCFundingProof({
+    version,
+    inputVector,
+    outputVector,
+    locktime,
+    outputPosition,
+    merkleProof,
+    indexInBlock,
+    bitcoinHeaders,
+  }: IFundingProof) {
+    return contract.functions.provideBTCFundingProof(
+      version,
+      inputVector,
+      outputVector,
+      locktime,
+      outputPosition,
+      merkleProof,
+      indexInBlock,
+      bitcoinHeaders,
+      { gasLimit: 1_000_000 }
+    );
+  }
+  async function retrieveSignerPubkey() {
+    return contract.functions.retrieveSignerPubkey();
   }
 }

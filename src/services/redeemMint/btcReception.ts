@@ -62,12 +62,10 @@ async function confirmBtcReceived(deposit: Deposit, txHash: string): Promise<voi
 
   const log = new DepositOperationLog();
   log.txHash = txHash;
-  log.fromAddress = txReceipt.vin[0].txid;
-  log.toAddress = deposit.redemptionAddress;
   log.operationType = DepositOperationLogType.REDEEM_BTC_RECEPTION;
   log.direction = DepositOperationLogDirection.IN;
   log.status = DepositOperationLogStatus.CONFIRMED;
-  log.blockchainType = BlockchainType.BITCOIN;
+  log.blockchainType = BlockchainType.BTC;
 
   await storeOperationLog(deposit, log);
 }
@@ -80,12 +78,10 @@ async function waitForIncomingBtc(deposit: Deposit): Promise<btcClient.IRawTx> {
 
   const log = new DepositOperationLog();
   log.txHash = tx.txid;
-  log.fromAddress = tx.vin[0].txid;
-  log.toAddress = deposit.redemptionAddress;
   log.operationType = DepositOperationLogType.REDEEM_BTC_RECEPTION;
   log.direction = DepositOperationLogDirection.IN;
   log.status = DepositOperationLogStatus.BROADCASTED;
-  log.blockchainType = BlockchainType.BITCOIN;
+  log.blockchainType = BlockchainType.BTC;
 
   await storeOperationLog(deposit, log);
 

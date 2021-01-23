@@ -33,6 +33,11 @@ async function convertWeiToUsd(wei: BigNumberish): Promise<number> {
   return bnToNumberEth(weiInUsd);
 }
 
+async function convertSatoshiToUsd(satoshi: BigNumberish): Promise<number> {
+  const satoshiInWei = await convertSatoshiToWei(satoshi);
+  return convertWeiToUsd(satoshiInWei);
+}
+
 async function fetchEthToBtc(): Promise<number> {
   const prices = await fetchPrices();
 
@@ -81,6 +86,7 @@ async function fetchPrices(): Promise<IPrices> {
 export default {
   convertSatoshiToWei,
   convertWeiToUsd,
+  convertSatoshiToUsd,
   fetchBtcToEth,
   fetchBtcToUsd,
   fetchEthToBtc,

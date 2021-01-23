@@ -1,15 +1,13 @@
-import { depositContractAt, tbtcToken, vendingMachine } from '../../contracts';
+import { depositToken } from '../../contracts';
 import { Deposit } from '../../entities/Deposit';
 import {
   BlockchainType,
   DepositOperationLogDirection,
   DepositOperationLogStatus,
   DepositOperationLogType,
-  IDepositContract,
   IEthTx,
 } from '../../types';
 import { createLogger } from '../../logger';
-import { bnToNumber } from '../../utils';
 import { DepositOperationLog } from '../../entities/DepositOperationLog';
 import { ethClient } from '../../clients';
 import priceFeed from '../priceFeed';
@@ -23,27 +21,27 @@ import { getDeposit } from '../depositHelper';
 
 const logger = createLogger('redeemApprove');
 
-export async function ensureApproveSpendingTbtc(deposit: Deposit): Promise<Deposit> {
-  logger.info(`Ensuring tbtc spending is approved for deposit ${deposit.depositAddress}...`);
+export async function ensureApproveTdt(deposit: Deposit): Promise<Deposit> {
+  logger.info(`Ensuring tdt approve for deposit ${deposit.depositAddress}...`);
   try {
-    // TODO: double check status on blockchain - ACTIVE / COURTESY_CALL
-    const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_APPROVE_TBTC);
+    // TODO: double check status on blockchain -
+    const logs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.MINT_APPROVE_TDT);
     if (hasOperationLogInStatus(logs, DepositOperationLogStatus.CONFIRMED)) {
-      logger.info(`Tbtc spending is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
+      logger.info(`Tdt approve is ${DepositOperationLogStatus.CONFIRMED} for deposit ${deposit.depositAddress}.`);
       return getDeposit(deposit.depositAddress);
     }
 
     const broadcastedLog = getOperationLogInStatus(logs, DepositOperationLogStatus.BROADCASTED);
     if (broadcastedLog) {
       logger.info(
-        `Tbtc spending is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
+        `Tdt approve is in ${DepositOperationLogStatus.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
       );
-      await confirmApproveSpendingTbtc(deposit, broadcastedLog.txHash);
+      await confirmApproveTdt(deposit, broadcastedLog.txHash);
       return getDeposit(deposit.depositAddress);
     }
 
-    const tx = await approveSpendingTbtc(deposit);
-    await confirmApproveSpendingTbtc(deposit, tx.hash);
+    const tx = await approveTdt(deposit);
+    await confirmApproveTdt(deposit, tx.hash);
   } catch (e) {
     // TODO: handle errors inside functions above
     console.log(e);
@@ -54,14 +52,14 @@ export async function ensureApproveSpendingTbtc(deposit: Deposit): Promise<Depos
   return getDeposit(deposit.depositAddress);
 }
 
-async function confirmApproveSpendingTbtc(deposit: Deposit, txHash: string): Promise<void> {
-  logger.info(`Waiting for confirmations for TBTC spending for deposit ${deposit.depositAddress}...`);
+async function confirmApproveTdt(deposit: Deposit, txHash: string): Promise<void> {
+  logger.info(`Waiting for confirmations for TDT approve and call for deposit ${deposit.depositAddress}...`);
   const { receipt, success } = await ethClient.confirmTransaction(txHash);
-  logger.info(`Got confirmations for TBTC spending for deposit ${deposit.depositAddress}.`);
+  logger.info(`Got confirmations for TDT approve and call for deposit ${deposit.depositAddress}.`);
 
   const log = new DepositOperationLog();
   log.txHash = txHash;
-  log.operationType = DepositOperationLogType.REDEEM_APPROVE_TBTC;
+  log.operationType = DepositOperationLogType.MINT_APPROVE_TDT;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = success ? DepositOperationLogStatus.CONFIRMED : DepositOperationLogStatus.ERROR;
   log.blockchainType = BlockchainType.ETH;
@@ -71,19 +69,13 @@ async function confirmApproveSpendingTbtc(deposit: Deposit, txHash: string): Pro
   await storeOperationLog(deposit, log);
 }
 
-async function approveSpendingTbtc(deposit: Deposit): Promise<IEthTx> {
-  const depositContract = depositContractAt(deposit.depositAddress);
-  const redemptionCost = await depositContract.getRedemptionCost();
-  console.log(redemptionCost);
-  console.log(redemptionCost.toString());
-  console.log(bnToNumber(redemptionCost));
-  const tx = await vendingMachine.approveSpendingTbtc(redemptionCost);
-  console.log(tx);
+async function approveTdt(deposit: Deposit): Promise<IEthTx> {
+  const tx = await depositToken.approve(deposit.mintedDeposit.depositAddress);
 
   const log = new DepositOperationLog();
   log.blockchainType = BlockchainType.ETH;
   log.txHash = tx.hash;
-  log.operationType = DepositOperationLogType.REDEEM_APPROVE_TBTC;
+  log.operationType = DepositOperationLogType.MINT_APPROVE_TDT;
   log.direction = DepositOperationLogDirection.OUT;
   log.status = DepositOperationLogStatus.BROADCASTED;
 
