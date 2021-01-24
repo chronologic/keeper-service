@@ -36,3 +36,7 @@ export async function confirmTransaction(
 export function isTransactionSuccessful(txReceipt: ethers.providers.TransactionReceipt): boolean {
   return txReceipt.status !== TX_STATUS_FAILED;
 }
+
+export function bytesToRaw(bytesString: string): string {
+  return bytesString.replace('0x', '').slice(2);
+}

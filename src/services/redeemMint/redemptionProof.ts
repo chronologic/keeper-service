@@ -76,7 +76,7 @@ async function provideRedemptionProof(deposit: Deposit): Promise<IEthTx> {
   const depositContract = depositContractAt(deposit.depositAddress);
   const minConfirmations = await tbtcConstants.getMinBtcConfirmations();
 
-  const btcReceptionLogs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_BTC_RECEPTION);
+  const btcReceptionLogs = await getOperationLogsOfType(deposit.id, DepositOperationLogType.REDEEM_BTC_RELEASE);
   const confirmedBtcReception = getOperationLogInStatus(btcReceptionLogs, DepositOperationLogStatus.CONFIRMED);
 
   const outputPosition = -1;

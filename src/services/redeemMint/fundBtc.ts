@@ -86,9 +86,7 @@ async function fundBtc(deposit: Deposit): Promise<btcClient.IRawTx> {
   // console.log('FUNDING ADDRESS', fundingAddress, lotSizeSatoshis.toString());
 
   const txHash = await btcClient.send(fundingAddress, lotSizeSatoshis.toNumber());
-  console.log({ txHash });
   const tx = await btcClient.getTransaction(txHash);
-  console.log({ tx });
 
   const log = new DepositOperationLog();
   log.txHash = tx.txid;

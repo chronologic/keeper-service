@@ -312,7 +312,7 @@ async function waitForTransactionToAddress(address: string, minValueSatoshis: Bi
 
   await waitForNextBlock();
 
-  return waitForConfirmations(address);
+  return waitForTransactionToAddress(address, minValueSatoshis);
 }
 
 async function waitForConfirmations(txHash: string, minConfirmations = 3): Promise<IRawTx> {
@@ -330,7 +330,6 @@ async function waitForConfirmations(txHash: string, minConfirmations = 3): Promi
 async function waitForNextBlock(): Promise<IBlockHeader> {
   const res = await BitcoinHelpers.Transaction.waitForNextBlock();
 
-  console.log(res);
   return res;
 }
 
@@ -516,7 +515,40 @@ function publicKeyPointToBitcoinAddress(publicKeyPoint: IPublicKeyPoint): string
   );
 }
 
+function publicKeyPointToPublicKeyString(publicKeyX: string, publicKeyY: string): string {
+  return `${publicKeyX.replace('0x', '')}${publicKeyY.replace('0x', '')}`;
+}
+
+function constructOneInputOneOutputWitnessTransaction(
+  previousOutpoint: string,
+  inputSequence: number,
+  outputValue: number,
+  outputScript: string
+): string {
+  return BitcoinHelpers.Transaction.constructOneInputOneOutputWitnessTransaction(
+    previousOutpoint,
+    inputSequence,
+    outputValue,
+    outputScript
+  );
+}
+
+function addWitnessSignature(
+  unsignedTransaction: string,
+  inputIndex: number,
+  r: string,
+  s: string,
+  publicKey: string
+): string {
+  return BitcoinHelpers.Transaction.addWitnessSignature(unsignedTransaction, inputIndex, r, s, publicKey);
+}
+
+async function broadcastTx(rawTx: string): Promise<string> {
+  return requestAndClose((client) => client.blockchain_transaction_broadcast(rawTx));
+}
+
 export {
+  broadcastTx,
   send,
   estimateSendFee,
   waitForTransactionToAddress,
@@ -530,5 +562,8 @@ export {
   addressToRedeemerScript,
   constructFundingProof,
   publicKeyPointToBitcoinAddress,
+  publicKeyPointToPublicKeyString,
   getTransactionFee,
+  constructOneInputOneOutputWitnessTransaction,
+  addWitnessSignature,
 };

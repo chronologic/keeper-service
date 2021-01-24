@@ -1,4 +1,4 @@
-import { depositToken, vendingMachine } from '../../contracts';
+import { depositContractAt, depositToken, vendingMachine } from '../../contracts';
 import { Deposit } from '../../entities/Deposit';
 import {
   BlockchainType,
@@ -18,6 +18,7 @@ import {
   storeOperationLog,
 } from './operationLogHelper';
 import { getDeposit } from '../depositHelper';
+import { weiToSatoshi } from '../../utils';
 
 const logger = createLogger('redeemApprove');
 
@@ -56,6 +57,11 @@ async function confirmTdtToTbtc(deposit: Deposit, txHash: string): Promise<void>
   logger.info(`Waiting for confirmations for TDT approve and call for deposit ${deposit.depositAddress}...`);
   const { receipt, success } = await ethClient.confirmTransaction(txHash);
   logger.info(`Got confirmations for TDT approve and call for deposit ${deposit.depositAddress}.`);
+  const depositContract = depositContractAt(deposit.mintedDeposit.depositAddress);
+  const signerFeeTbtc = await depositContract.getSignerFeeTbtc();
+  const signerFeeSats = weiToSatoshi(signerFeeTbtc);
+  const signerFeeEth = await priceFeed.convertSatoshiToWei(signerFeeSats);
+  const txCost = signerFeeEth.add(receipt.gasUsed);
 
   // TODO: get the transferred amount and calculate correct cost
 
@@ -65,8 +71,8 @@ async function confirmTdtToTbtc(deposit: Deposit, txHash: string): Promise<void>
   log.direction = DepositOperationLogDirection.OUT;
   log.status = success ? DepositOperationLogStatus.CONFIRMED : DepositOperationLogStatus.ERROR;
   log.blockchainType = BlockchainType.ETH;
-  log.txCostEthEquivalent = receipt.gasUsed;
-  log.txCostUsdEquivalent = await priceFeed.convertWeiToUsd(receipt.gasUsed);
+  log.txCostEthEquivalent = txCost;
+  log.txCostUsdEquivalent = await priceFeed.convertWeiToUsd(txCost);
 
   await storeOperationLog(deposit, log);
 }

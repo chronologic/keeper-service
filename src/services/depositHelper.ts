@@ -73,7 +73,11 @@ export async function storeDeposit(deposit: Deposit): Promise<Deposit> {
     where: { depositAddress: deposit.depositAddress },
   });
 
-  depositDb = (await manager.save(Deposit, { ...depositDb, ...deposit })) as Deposit;
+  depositDb = (await manager.save(Deposit, {
+    ...depositDb,
+    ...deposit,
+    blockNumber: Math.min(depositDb.blockNumber, deposit.blockNumber),
+  })) as Deposit;
 
   return depositDb;
 }

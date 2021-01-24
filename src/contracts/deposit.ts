@@ -35,7 +35,7 @@ export default function getContractAt(address: string): IDepositContract {
     return lotSize;
   }
   async function getSignerFeeTbtc() {
-    const [fee] = await contract.functions.getSignerFeeTbtc();
+    const [fee] = await contract.functions.signerFeeTbtc();
     return fee;
   }
   async function getStatusCode() {

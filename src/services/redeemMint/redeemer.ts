@@ -14,16 +14,17 @@ import { ensureDepositCreated } from './createDeposit';
 import { ensurePubkeyRetrieved } from './retrievePubkey';
 import { ensureBtcFunded } from './fundBtc';
 import { ensureFundingProofProvided } from './fundingProof';
-import { ensureApproveAndCallTdt } from './approveAndCallTdt';
+// import { ensureApproveAndCallTdt } from './approveAndCallTdt';
 import { ensureApproveTdt } from './approveTdt';
 import { ensureTdtToTbtc } from './tdtToTbtc';
+import { ensureBtcReleased } from './btcRelease';
 
 const logger = createLogger('redemption');
 let busy = false;
 
 export async function init(): Promise<any> {
   console.log('init');
-  const deposit = await getDeposit('0xd7708a3c85191fc64ebd5f1015eb02dfb0f7eca4');
+  const deposit = await getDeposit('0x451bd3a7d204ce27e3c3524a7fd5f3f602ef1b4a');
   const depositContract = depositContractAt(deposit.depositAddress);
   const statusCode = await depositContract.getStatusCode();
   console.log('deposit is in status:', DepositStatus[statusCode]);
@@ -32,6 +33,8 @@ export async function init(): Promise<any> {
   // const deposit = depositContractAt('0x41f92f9c627132a613a14de9a28aebc721607b90');
   // const statusCode = await deposit.getStatusCode();
   // console.log('deposit is in status:', DepositStatus[statusCode]);
+  // const signerFee = await deposit.getSignerFeeTbtc();
+  // console.log('signer fee:', signerFee.toString());
 }
 
 export async function checkForDepositToProcess(): Promise<void> {
@@ -76,7 +79,9 @@ async function processDeposit(deposit: Deposit): Promise<void> {
 
   updatedDeposit = await ensureRedemptionSigProvided(updatedDeposit);
 
-  updatedDeposit = await ensureBtcReceived(updatedDeposit);
+  // updatedDeposit = await ensureBtcReceived(updatedDeposit);
+
+  updatedDeposit = await ensureBtcReleased(updatedDeposit);
 
   updatedDeposit = await ensureRedemptionProofProvided(updatedDeposit);
 
