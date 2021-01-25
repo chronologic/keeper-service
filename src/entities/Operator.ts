@@ -18,11 +18,9 @@ export class Operator {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne((_type) => User, { nullable: true, onDelete: 'SET NULL' })
-  user: User;
-
-  @Column({ nullable: true })
-  userId: number;
+  @ManyToMany((_type) => User, (user) => user.operators)
+  @JoinTable()
+  users: User[];
 
   @ManyToMany((_type) => Deposit, (deposit) => deposit.operators)
   @JoinTable()

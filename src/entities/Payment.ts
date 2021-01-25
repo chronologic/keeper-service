@@ -4,12 +4,14 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 import { bigNumberColumnOptions, lowercaseTransformer } from './shared';
 import { User } from './User';
 
+enum Status {
+  CONFIRMED = 'CONFIRMED',
+  ERROR = 'ERROR',
+}
+
 @Entity()
 export class Payment {
-  static Status = Object.freeze({
-    CONFIRMED: 'CONFIRMED',
-    ERROR: 'ERROR',
-  });
+  static Status = Status;
 
   @PrimaryGeneratedColumn()
   id: number;

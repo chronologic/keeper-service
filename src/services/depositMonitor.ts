@@ -12,7 +12,7 @@ import priceFeed from './priceFeed';
 const logger = createLogger('depositMonitor');
 const minLotSize = numberToBnBtc(MIN_LOT_SIZE_BTC).toString();
 
-const redeemableStatuses = [DepositStatus[DepositStatus.ACTIVE], DepositStatus[DepositStatus.COURTESY_CALL]];
+const redeemableStatuses = [DepositStatus[Deposit.Status.ACTIVE], DepositStatus[Deposit.Status.COURTESY_CALL]];
 
 function init(): void {
   checkDepositsAndScheduleNextRun();
@@ -91,7 +91,7 @@ async function checkIsInRedeemableState(deposit: Deposit): Promise<boolean> {
 }
 
 async function markDepositForRedemption(deposit: Deposit): Promise<void> {
-  await updateDepositStatus(deposit, DepositStatus.KEEPER_QUEUED_FOR_REDEMPTION);
+  await updateDepositStatus(deposit, Deposit.Status.KEEPER_QUEUED_FOR_REDEMPTION);
 }
 
 async function updateDepositStatus(deposit: Deposit, statusCode: number): Promise<void> {

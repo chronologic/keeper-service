@@ -15,7 +15,7 @@ const SYNC_INTERVAL_MINUTES = 5;
 const SYNC_INTERVAL = SYNC_INTERVAL_MINUTES * MINUTE_MILLIS;
 
 async function init(): Promise<void> {
-  syncPeriodically();
+  await syncPeriodically();
 }
 
 async function syncPeriodically(): Promise<void> {
@@ -138,7 +138,6 @@ async function getOrCreateUser(manager: EntityManager, address: string): Promise
 
 async function paymentTxExists(manager: EntityManager, txHash: string): Promise<boolean> {
   const payment = await manager.findOne(Payment, { txHash });
-  console.log(payment);
 
   return !!payment;
 }

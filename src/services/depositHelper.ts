@@ -3,12 +3,11 @@ import { getConnection } from 'typeorm';
 import { Deposit } from '../entities/Deposit';
 import { Operator } from '../entities/Operator';
 import { createLogger } from '../logger';
-import { DepositStatus } from '../types';
 import { depositContractAt, keepContractAt } from '../contracts';
 
 const logger = createLogger('depositHelper');
 
-export async function getDeposit(address: string): Promise<Deposit> {
+async function getByAddress(address: string): Promise<Deposit> {
   const deposit = await getConnection()
     .createEntityManager()
     .findOne(Deposit, {
@@ -21,7 +20,7 @@ export async function getDeposit(address: string): Promise<Deposit> {
   return deposit;
 }
 
-export async function buildDeposit(address: string, createdAtBlock: number): Promise<Deposit> {
+async function buildDeposit(address: string, createdAtBlock: number): Promise<Deposit> {
   const deposit = new Deposit();
   deposit.blockNumber = createdAtBlock;
 
@@ -30,7 +29,7 @@ export async function buildDeposit(address: string, createdAtBlock: number): Pro
   deposit.depositAddress = address;
 
   deposit.statusCode = await depositContract.getStatusCode();
-  deposit.status = DepositStatus[deposit.statusCode];
+  deposit.status = Deposit.Status[deposit.statusCode] as any;
 
   deposit.keepAddress = await depositContract.getKeepAddress();
   const keepContract = keepContractAt(deposit.keepAddress);
@@ -55,13 +54,13 @@ export async function buildDeposit(address: string, createdAtBlock: number): Pro
   return deposit;
 }
 
-export async function buildAndStoreDepoist(address: string, createdAtBlock: number): Promise<Deposit> {
+async function buildAndStore(address: string, createdAtBlock: number): Promise<Deposit> {
   const deposit = await buildDeposit(address, createdAtBlock);
 
-  return storeDeposit(deposit);
+  return store(deposit);
 }
 
-export async function storeDeposit(deposit: Deposit): Promise<Deposit> {
+async function store(deposit: Deposit): Promise<Deposit> {
   const connection = getConnection();
   const manager = connection.createEntityManager();
   if (deposit.operators) {
@@ -98,3 +97,9 @@ async function storeOperator(operator: Operator): Promise<Operator> {
 
   return operatorDb;
 }
+
+export default {
+  getByAddress,
+  buildAndStore,
+  store,
+};

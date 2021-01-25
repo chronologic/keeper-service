@@ -65,7 +65,7 @@ async function maybeStoreDepositFundedEvent(event: Event): Promise<boolean> {
   const [depositAddress]: [string] = parsed.args as any;
   let deposit = await buildDeposit(depositAddress, event.blockNumber);
   let stored = false;
-  const acceptedStatuses = [DepositStatus.ACTIVE, DepositStatus.COURTESY_CALL];
+  const acceptedStatuses = [Deposit.Status.ACTIVE, Deposit.Status.COURTESY_CALL];
 
   if (acceptedStatuses.includes(deposit.statusCode)) {
     deposit = await storeDeposit(deposit);
