@@ -4,26 +4,27 @@ import { getConnection } from 'typeorm';
 import { Deposit } from '../entities/Deposit';
 import { SYNC_MIN_BLOCK } from '../env';
 import { createLogger } from '../logger';
-import { DepositStatus } from '../types';
 import { bnToNumberBtc } from '../utils';
 import { tbtcSystem } from '../contracts';
-import { buildDeposit, storeDeposit } from './depositHelper';
+import { MINUTE_MILLIS } from '../constants';
+import depositHelper from './depositHelper';
 
 const logger = createLogger('depositSync');
+const SYNC_INTERVAL_MINUTES = 5;
+const SYNC_INTERVAL = SYNC_INTERVAL_MINUTES * MINUTE_MILLIS;
 
 async function init(): Promise<void> {
-  await listenForNewDeposits();
-  // listenForDepositStateChanges();
-  await syncDepositsFromLogs();
+  await syncPeriodically();
 }
 
-async function listenForNewDeposits(): Promise<void> {
-  tbtcSystem.contract.on('Funded', async (...args) => {
-    const [, , , event] = args;
-    console.log('FUNDED EVENT', args);
-    logger.info(`⭐ new Funded event at block ${event.blockNumber}`);
-    await maybeStoreDepositFundedEvent(event);
-  });
+async function syncPeriodically(): Promise<void> {
+  try {
+    await syncDepositsFromLogs();
+  } catch (e) {
+    logger.error(e.message);
+  }
+  logger.info(`Next run in ${SYNC_INTERVAL_MINUTES} minutes`);
+  setTimeout(syncPeriodically, SYNC_INTERVAL);
 }
 
 async function syncDepositsFromLogs(): Promise<void> {
@@ -63,12 +64,12 @@ async function getLastSyncedBlockNumber(): Promise<number> {
 async function maybeStoreDepositFundedEvent(event: Event): Promise<boolean> {
   const parsed = tbtcSystem.contract.interface.parseLog(event);
   const [depositAddress]: [string] = parsed.args as any;
-  let deposit = await buildDeposit(depositAddress, event.blockNumber);
+  let deposit = await depositHelper.build(depositAddress, event.blockNumber);
   let stored = false;
   const acceptedStatuses = [Deposit.Status.ACTIVE, Deposit.Status.COURTESY_CALL];
 
   if (acceptedStatuses.includes(deposit.statusCode)) {
-    deposit = await storeDeposit(deposit);
+    deposit = await depositHelper.store(deposit);
     stored = true;
   }
   logger.info(

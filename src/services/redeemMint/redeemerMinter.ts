@@ -45,6 +45,9 @@ export async function init(): Promise<any> {
   // console.log('signer fee:', signerFee.toString());
 }
 
+// as long as there are deposits to process
+// the system will recursively keep looking for more
+// if nothing found, we're done (for now)
 export async function checkForDepositToProcess(): Promise<void> {
   if (!busy) {
     busy = true;
@@ -62,16 +65,18 @@ export async function checkForDepositToProcess(): Promise<void> {
 async function getDepositToProcess(): Promise<Deposit> {
   const connection = getConnection();
   const deposits = await connection.createEntityManager().find(Deposit, {
-    where: { statusCode: [Deposit.SystemStatus.QUEUED_FOR_REDEMPTION, Deposit.SystemStatus.REDEEMING] },
-    order: { statusCode: 'DESC', createDate: 'ASC' },
+    where: { systemStatus: [Deposit.SystemStatus.QUEUED_FOR_REDEMPTION, Deposit.SystemStatus.REDEEMING] },
+    order: { systemStatus: 'DESC', createDate: 'ASC' },
   });
 
-  // TODO: order by collateralization %
+  const redeemingFirstDeposits = deposits.sort((d1, d2) => d2.systemStatus.localeCompare(d1.systemStatus));
+
+  // TODO: order by collateralization % ?
   // TODO: double check collateralization %
 
   logger.info(`Found ${deposits.length} deposits to process`);
 
-  return deposits[0];
+  return redeemingFirstDeposits[0];
 }
 
 async function processDeposit(deposit: Deposit): Promise<void> {
@@ -82,7 +87,11 @@ async function processDeposit(deposit: Deposit): Promise<void> {
   // - check deposit status
   // - check balances
 
-  // TODO: email if process changed from queued to redeeming
+  const updated = await depositHelper.updateSystemStatus(deposit.depositAddress, Deposit.SystemStatus.REDEEMING);
+
+  if (updated) {
+    // TODO: email if process changed from queued to redeeming
+  }
 
   const steps: IStepParams[] = [
     redeem_1_approveTbtc,
@@ -100,7 +109,7 @@ async function processDeposit(deposit: Deposit): Promise<void> {
 
   for (const step of steps) {
     const updatedDeposit = await depositHelper.getByAddress(deposit.depositAddress);
-    await handler({
+    await executeStep({
       deposit: updatedDeposit,
       operationType: step.operationType,
       confirmFn: step.confirm,
@@ -113,7 +122,7 @@ async function processDeposit(deposit: Deposit): Promise<void> {
   // refresh system balances
 }
 
-async function handler({
+async function executeStep({
   deposit,
   confirmFn,
   executeFn,

@@ -65,17 +65,7 @@ async function storeAndUpdateUserBalance(
   deposit: Deposit,
   { txHash, operationType, status, txCostEthEquivalent = BigNumber.from('0') }: IDepositTxParams
 ): Promise<DepositTx> {
-  logger.debug(`Storing log for deposit ${deposit.depositAddress}...`);
-  const txCostUsdEquivalent = await priceFeed.convertWeiToUsd(txCostEthEquivalent);
-  logger.debug(
-    JSON.stringify({
-      txHash,
-      operationType,
-      status,
-      txCostEthEquivalent,
-      txCostUsdEquivalent,
-    })
-  );
+  logger.debug(`Storing deposit tx for deposit ${deposit.depositAddress}...`);
   const res = await store(deposit, {
     txHash,
     operationType,
@@ -95,7 +85,7 @@ async function store(
   deposit: Deposit,
   { txHash, operationType, status, txCostEthEquivalent = BigNumber.from('0') }: IDepositTxParams
 ): Promise<DepositTx> {
-  logger.debug(`Storing log for deposit ${deposit.depositAddress}...`);
+  logger.debug(`Storing deposit tx for deposit ${deposit.depositAddress}...`);
   const txCostUsdEquivalent = await priceFeed.convertWeiToUsd(txCostEthEquivalent);
   logger.debug(
     JSON.stringify({

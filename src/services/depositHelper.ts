@@ -20,7 +20,30 @@ async function getByAddress(address: string): Promise<Deposit> {
   return deposit;
 }
 
-async function buildDeposit(address: string, createdAtBlock: number): Promise<Deposit> {
+async function updateStatus(address: string, status: Deposit['Status']): Promise<boolean> {
+  const existingDeposit = await getByAddress(address);
+  if (existingDeposit.status !== status) {
+    return false;
+  }
+
+  const statusCode = Deposit.Status[status] as any;
+  await getConnection().createEntityManager().update(Deposit, { depositAddress: address }, { status, statusCode });
+
+  return true;
+}
+
+async function updateSystemStatus(address: string, systemStatus: Deposit['SystemStatus']): Promise<boolean> {
+  const existingDeposit = await getByAddress(address);
+  if (existingDeposit.systemStatus !== systemStatus) {
+    return false;
+  }
+
+  await getConnection().createEntityManager().update(Deposit, { depositAddress: address }, { systemStatus });
+
+  return true;
+}
+
+async function build(address: string, createdAtBlock: number): Promise<Deposit> {
   const deposit = new Deposit();
   deposit.blockNumber = createdAtBlock;
 
@@ -55,7 +78,7 @@ async function buildDeposit(address: string, createdAtBlock: number): Promise<De
 }
 
 async function buildAndStore(address: string, createdAtBlock: number): Promise<Deposit> {
-  const deposit = await buildDeposit(address, createdAtBlock);
+  const deposit = await build(address, createdAtBlock);
 
   return store(deposit);
 }
@@ -100,6 +123,9 @@ async function storeOperator(operator: Operator): Promise<Operator> {
 
 export default {
   getByAddress,
+  updateStatus,
+  updateSystemStatus,
   buildAndStore,
+  build,
   store,
 };

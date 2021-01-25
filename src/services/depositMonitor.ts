@@ -2,25 +2,34 @@ import { getConnection } from 'typeorm';
 
 import { MINUTE_MILLIS } from '../constants';
 import { COLLATERAL_BUFFER_PERCENT, COLLATERAL_CHECK_INTERVAL_MINUTES, MIN_LOT_SIZE_BTC } from '../env';
-import { Deposit } from '../entities/Deposit';
 import { createLogger } from '../logger';
-import { DepositStatus } from '../types';
 import { depositContractAt } from '../contracts';
 import { bnToNumberBtc, bnToNumberEth, numberToBnBtc } from '../utils';
+import { Deposit } from '../entities';
 import priceFeed from './priceFeed';
+import depositHelper from './depositHelper';
 
 const logger = createLogger('depositMonitor');
 const minLotSize = numberToBnBtc(MIN_LOT_SIZE_BTC).toString();
+const COLLATERAL_CHECK_INTERVAL = COLLATERAL_CHECK_INTERVAL_MINUTES * MINUTE_MILLIS;
 
-const redeemableStatuses = [DepositStatus[Deposit.Status.ACTIVE], DepositStatus[Deposit.Status.COURTESY_CALL]];
+const redeemableStatusCodes = [
+  Deposit.Status[Deposit.Status.ACTIVE],
+  Deposit.Status[Deposit.Status.COURTESY_CALL],
+] as any[];
 
-function init(): void {
-  checkDepositsAndScheduleNextRun();
+async function init(): Promise<void> {
+  await checkPeriodically();
 }
 
-async function checkDepositsAndScheduleNextRun(): Promise<void> {
-  await checkDeposits();
-  setTimeout(checkDepositsAndScheduleNextRun, COLLATERAL_CHECK_INTERVAL_MINUTES * MINUTE_MILLIS);
+async function checkPeriodically(): Promise<void> {
+  try {
+    await checkDeposits();
+  } catch (e) {
+    logger.error(e.message);
+  }
+  logger.info(`Next run in ${COLLATERAL_CHECK_INTERVAL_MINUTES} minutes`);
+  setTimeout(checkPeriodically, COLLATERAL_CHECK_INTERVAL);
 }
 
 async function checkDeposits(): Promise<void> {
@@ -82,36 +91,31 @@ async function tryMarkDepositForRedemption(deposit: Deposit): Promise<boolean> {
 async function checkIsInRedeemableState(deposit: Deposit): Promise<boolean> {
   const statusCode = await depositContractAt(deposit.depositAddress).getStatusCode();
 
-  if (redeemableStatuses.includes(DepositStatus[statusCode])) {
+  if (redeemableStatusCodes.includes(Deposit.Status[statusCode] as any)) {
     return true;
   }
 
-  await updateDepositStatus(deposit, statusCode);
+  if (deposit.statusCode !== statusCode) {
+    await depositHelper.updateStatus(deposit.depositAddress, statusCode);
+  }
+
   return false;
 }
 
 async function markDepositForRedemption(deposit: Deposit): Promise<void> {
-  await updateDepositStatus(deposit, Deposit.Status.KEEPER_QUEUED_FOR_REDEMPTION);
-}
-
-async function updateDepositStatus(deposit: Deposit, statusCode: number): Promise<void> {
-  const connection = getConnection();
-  const status = DepositStatus[statusCode];
-  await connection.createEntityManager().update(Deposit, { id: deposit.id }, { statusCode, status });
-
-  logger.debug(`updated deposit status to ${status}`);
+  await depositHelper.updateSystemStatus(deposit.depositAddress, Deposit.SystemStatus.QUEUED_FOR_REDEMPTION);
 }
 
 async function getDepositsToCheck(): Promise<Deposit[]> {
   const connection = getConnection();
   // TODO: only include subscribed operators
-  // TODO: exclude deposits that are being redeemed by Keeper
   const deposits = await connection
     .createQueryBuilder()
     .select('*')
     .from(Deposit, 'd')
     .innerJoin('d.operators', 'o')
-    .where('d.status in (:...redeemableStatuses)', { redeemableStatuses })
+    .where('d.statusCode in (:...redeemableStatusCodes)', { redeemableStatusCodes })
+    .andWhere('d.systemStaus is null')
     .andWhere('d.bondedEth > 0')
     .andWhere('d.lotSizeSatoshis > :minLotSize', { minLotSize })
     .execute();
