@@ -2,7 +2,7 @@ import { Event } from 'ethers';
 import { getConnection } from 'typeorm';
 
 import { Deposit } from '../entities/Deposit';
-import { DEPOSIT_SYNC_MIN_BLOCK } from '../env';
+import { SYNC_MIN_BLOCK } from '../env';
 import { createLogger } from '../logger';
 import { DepositStatus } from '../types';
 import { bnToNumberBtc } from '../utils';
@@ -57,7 +57,7 @@ async function getLastSyncedBlockNumber(): Promise<number> {
     .execute();
   logger.debug(`last synced block number: ${max}`);
 
-  return max || DEPOSIT_SYNC_MIN_BLOCK;
+  return max || SYNC_MIN_BLOCK;
 }
 
 async function maybeStoreDepositFundedEvent(event: Event): Promise<boolean> {

@@ -76,6 +76,10 @@ export class Deposit {
   @Column({ type: 'smallint' })
   statusCode: number;
 
+  @Index()
+  @Column({ length: 40, nullable: true })
+  systemStatus: string;
+
   @Column({ type: 'timestamp with time zone' })
   createdAt: Date;
 

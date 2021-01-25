@@ -7,30 +7,23 @@ interface IAbiAndAddress {
   address: string;
 }
 
-interface IEnvParams {
+export interface IEnvParams {
   [key: string]: {
     chainId: string;
     artifactsPath: string;
   };
 }
 
-const envParams: IEnvParams = Object.freeze({
-  mainnet: {
-    chainId: '1',
-    artifactsPath: '@keep-network/tbtc/artifacts',
-  },
-  ropsten: {
-    chainId: '3',
-    artifactsPath: '@keep-network/tbtc-ropsten/artifacts',
-  },
-});
+type AbiAndAddressGetter = (filename: string) => IAbiAndAddress;
 
-export default function getAbiAndAddress(filename: string): IAbiAndAddress {
-  const { artifactsPath, chainId } = envParams[ETH_NETWORK];
-  const artifact = require(`${artifactsPath}/${filename}.json`);
+export default function createGetAbiAndAddress(config: IEnvParams): AbiAndAddressGetter {
+  return (filename) => {
+    const { artifactsPath, chainId } = config[ETH_NETWORK];
+    const artifact = require(`${artifactsPath}/${filename}.json`);
 
-  return {
-    abi: artifact.abi,
-    address: artifact.networks[chainId]?.address,
+    return {
+      abi: artifact.abi,
+      address: artifact.networks[chainId]?.address,
+    };
   };
 }

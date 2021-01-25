@@ -7,14 +7,12 @@ import { createLogger } from '../../logger';
 import { ensureApproveSpendingTbtc } from './redeemApprove';
 import { ensureRedemptionRequested } from './requestRedemption';
 import { ensureRedemptionSigProvided } from './redemptionSig';
-import { ensureBtcReceived } from './btcReception';
 import { getDeposit } from '../depositHelper';
 import { ensureRedemptionProofProvided } from './redemptionProof';
 import { ensureDepositCreated } from './createDeposit';
 import { ensurePubkeyRetrieved } from './retrievePubkey';
 import { ensureBtcFunded } from './fundBtc';
 import { ensureFundingProofProvided } from './fundingProof';
-// import { ensureApproveAndCallTdt } from './approveAndCallTdt';
 import { ensureApproveTdt } from './approveTdt';
 import { ensureTdtToTbtc } from './tdtToTbtc';
 import { ensureBtcReleased } from './btcRelease';
@@ -59,6 +57,7 @@ async function getDepositToProcess(): Promise<Deposit> {
   });
 
   // TODO: order by collateralization %
+  // TODO: double check collateralization %
 
   logger.info(`Found ${deposits.length} deposits to process`);
 

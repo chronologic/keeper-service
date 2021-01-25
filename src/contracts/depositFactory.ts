@@ -2,7 +2,7 @@ import { BigNumber, ethers } from 'ethers';
 
 import { ethClient } from '../clients';
 import { IEthTx } from '../types';
-import getAbiAndAddress from './getAbiAndAddress';
+import getAbiAndAddress from './getKeepAbiAndAddress';
 
 const { abi, address } = getAbiAndAddress('DepositFactory');
 

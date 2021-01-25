@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 
 import { ethClient } from '../clients';
 import { IEthTx } from '../types';
-import getAbiAndAddress from './getAbiAndAddress';
+import getAbiAndAddress from './getKeepAbiAndAddress';
 import { contract as fundingScriptContract } from './fundingScript';
 import { contract as vendingMachineContract } from './vendingMachine';
 

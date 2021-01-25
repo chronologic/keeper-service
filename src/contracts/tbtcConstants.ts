@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 
 import { ethClient } from '../clients';
-import getAbiAndAddress from './getAbiAndAddress';
+import getAbiAndAddress from './getKeepAbiAndAddress';
 
 const { abi, address } = getAbiAndAddress('TBTCConstants');
 export const contract = new ethers.Contract(address, abi, ethClient.defaultWallet);

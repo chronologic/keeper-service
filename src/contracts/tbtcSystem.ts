@@ -1,8 +1,7 @@
 import { BigNumber, ethers } from 'ethers';
 
 import { ethClient } from '../clients';
-import { IFundingProof } from '../types';
-import getAbiAndAddress from './getAbiAndAddress';
+import getAbiAndAddress from './getKeepAbiAndAddress';
 
 interface IRedemptionDetails {
   depositContractAddress: string;

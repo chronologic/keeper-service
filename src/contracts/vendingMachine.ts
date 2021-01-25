@@ -2,7 +2,7 @@ import { ethers } from 'ethers';
 
 import { ethClient } from '../clients';
 import { IEthTx, IFundingProof } from '../types';
-import getAbiAndAddress from './getAbiAndAddress';
+import getAbiAndAddress from './getKeepAbiAndAddress';
 import { approve } from './tbtcToken';
 
 const { abi, address } = getAbiAndAddress('VendingMachine');

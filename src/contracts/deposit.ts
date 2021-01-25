@@ -3,7 +3,7 @@ import { ethers } from 'ethers';
 import { ethClient } from '../clients';
 import { IDepositContract, IFundingProof } from '../types';
 import { satoshiToWei } from '../utils';
-import getAbiAndAddress from './getAbiAndAddress';
+import getAbiAndAddress from './getKeepAbiAndAddress';
 
 const { abi } = getAbiAndAddress('Deposit');
 

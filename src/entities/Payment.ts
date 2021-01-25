@@ -6,6 +6,11 @@ import { User } from './User';
 
 @Entity()
 export class Payment {
+  static Status = Object.freeze({
+    CONFIRMED: 'CONFIRMED',
+    ERROR: 'ERROR',
+  });
+
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -22,8 +27,12 @@ export class Payment {
   @Column(bigNumberColumnOptions)
   amount: BigNumber;
 
-  @Column()
+  @Column({ length: 10 })
   status: string;
+
+  @Index()
+  @Column({ type: 'int' })
+  blockNumber: number;
 
   @CreateDateColumn()
   createDate: Date;

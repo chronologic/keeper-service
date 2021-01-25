@@ -20,10 +20,6 @@ export class User {
   @Column({ transformer: lowercaseTransformer })
   address: string;
 
-  @Index({ unique: true })
-  @Column({ transformer: lowercaseTransformer, nullable: true })
-  paymentAddressEth: string;
-
   @Column({ ...bigNumberColumnOptions, nullable: true })
   balanceEth: BigNumber;
 
