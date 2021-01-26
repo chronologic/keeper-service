@@ -3,7 +3,7 @@ import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { btcClient, ethClient } from '../../clients';
 import { DepositTx } from '../../entities';
-import depositTxHelper, { IDepositTxParams } from './depositTxHelper';
+import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('redeem_5_redemptionProof');
 const operationType = DepositTx.Type.REDEEM_PROVIDE_REDEMPTION_PROOF;

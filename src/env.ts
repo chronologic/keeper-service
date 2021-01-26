@@ -16,3 +16,5 @@ export const SYNC_MIN_BLOCK = Number(process.env.SYNC_MIN_BLOCK || 10880657);
 export const COLLATERAL_CHECK_INTERVAL_MINUTES = Number(process.env.COLLATERAL_CHECK_INTERVAL_MINUTES || 5);
 export const COLLATERAL_BUFFER_PERCENT = Number(process.env.COLLATERAL_BUFFER_PERCENT || 5);
 export const MIN_LOT_SIZE_BTC = Number(process.env.MIN_LOT_SIZE_BTC || 1);
+export const MIN_USER_BALANCE_ETH = Number(process.env.MIN_USER_BALANCE_ETH || 0);
+export const USER_TX_FEE_PERCENT = Number(process.env.USER_TX_FEE_PERCENT || 0);

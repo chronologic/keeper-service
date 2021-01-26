@@ -2,6 +2,10 @@
 import { getConnection } from 'typeorm';
 
 import { createLogger } from '../../logger';
+import { Deposit, DepositTx } from '../../entities';
+import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
+import depositHelper from '../depositHelper';
+import userAccountingHelper from '../userAccountingHelper';
 import redeem_1_approveTbtc from './redeem_1_approveTbtc';
 import redeem_2_requestRedemption from './redeem_2_requestRedemption';
 import redeem_3_redemptionSig from './redeem_3_redemptionSig';
@@ -13,9 +17,6 @@ import mint_3_fundBtc from './mint_3_fundBtc';
 import mint_4_fundingProof from './mint_4_fundingProof';
 import mint_5_approveTdt from './mint_5_approveTdt';
 import mint_6_tdtToTbtc from './mint_6_tdtToTbtc';
-import { Deposit, DepositTx } from '../../entities';
-import depositTxHelper, { IDepositTxParams } from './depositTxHelper';
-import depositHelper from '../depositHelper';
 
 type ConfirmFn = (deposit: Deposit, txHash: string) => Promise<IDepositTxParams>;
 type ExecuteFn = (deposit: Deposit) => Promise<IDepositTxParams>;
@@ -80,46 +81,48 @@ async function getDepositToProcess(): Promise<Deposit> {
 }
 
 async function processDeposit(deposit: Deposit): Promise<void> {
-  // TODO: change deposit state to REDEEMING
   // TODO: check for errors, if 3 errors in one operation type - set deposit state to ERROR
   // TODO: between each call:
-  // - update deposit
   // - check deposit status
-  // - check balances
 
-  const updated = await depositHelper.updateSystemStatus(deposit.depositAddress, Deposit.SystemStatus.REDEEMING);
+  try {
+    const updated = await depositHelper.updateSystemStatus(deposit.depositAddress, Deposit.SystemStatus.REDEEMING);
 
-  if (updated) {
-    // TODO: email if process changed from queued to redeeming
+    if (updated) {
+      // TODO: email if process changed from queued to redeeming
+    }
+
+    const steps: IStepParams[] = [
+      redeem_1_approveTbtc,
+      redeem_2_requestRedemption,
+      redeem_3_redemptionSig,
+      redeem_4_btcRelease,
+      redeem_5_redemptionProof,
+      mint_1_createDeposit,
+      mint_2_retrievePubkey,
+      mint_3_fundBtc,
+      mint_4_fundingProof,
+      mint_5_approveTdt,
+      mint_6_tdtToTbtc,
+    ];
+
+    for (const step of steps) {
+      const updatedDeposit = await depositHelper.getByAddress(deposit.depositAddress);
+      await executeStep({
+        deposit: updatedDeposit,
+        operationType: step.operationType,
+        confirmFn: step.confirm,
+        executeFn: step.execute,
+      });
+    }
+
+    // TODO: email on success/error
+    // TODO: check system balances before / after execution
+  } catch (e) {
+    logger.error(e?.message);
+  } finally {
+    await userAccountingHelper.updateUserBalancesForDeposit(deposit.id);
   }
-
-  const steps: IStepParams[] = [
-    redeem_1_approveTbtc,
-    redeem_2_requestRedemption,
-    redeem_3_redemptionSig,
-    redeem_4_btcRelease,
-    redeem_5_redemptionProof,
-    mint_1_createDeposit,
-    mint_2_retrievePubkey,
-    mint_3_fundBtc,
-    mint_4_fundingProof,
-    mint_5_approveTdt,
-    mint_6_tdtToTbtc,
-  ];
-
-  for (const step of steps) {
-    const updatedDeposit = await depositHelper.getByAddress(deposit.depositAddress);
-    await executeStep({
-      deposit: updatedDeposit,
-      operationType: step.operationType,
-      confirmFn: step.confirm,
-      executeFn: step.execute,
-    });
-  }
-
-  // TODO: email on success/error
-
-  // refresh system balances
 }
 
 async function executeStep({
@@ -162,12 +165,12 @@ async function tryConfirmFn(
   try {
     const res = await confirmFn(deposit, txHash);
 
-    await depositTxHelper.storeAndUpdateUserBalance(deposit, res);
+    await depositTxHelper.storeAndAddUserPayments(deposit, res);
 
     return res;
   } catch (e) {
     logger.error(e?.message);
-    await depositTxHelper.storeAndUpdateUserBalance(deposit, {
+    await depositTxHelper.storeAndAddUserPayments(deposit, {
       status: DepositTx.Status.ERROR,
       txHash,
       operationType,
@@ -184,12 +187,12 @@ async function tryExecuteFn(
   try {
     const res = await executeFn(deposit);
 
-    await depositTxHelper.storeAndUpdateUserBalance(deposit, res);
+    await depositTxHelper.storeAndAddUserPayments(deposit, res);
 
     return res;
   } catch (e) {
     logger.error(e?.message);
-    await depositTxHelper.storeAndUpdateUserBalance(deposit, {
+    await depositTxHelper.storeAndAddUserPayments(deposit, {
       status: DepositTx.Status.ERROR,
       operationType,
     });

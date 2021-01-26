@@ -5,7 +5,7 @@ import { ethClient } from '../../clients';
 import priceFeed from '../priceFeed';
 import { weiToSatoshi } from '../../utils';
 import { DepositTx } from '../../entities';
-import { IDepositTxParams } from './depositTxHelper';
+import { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('mint_6_tdtToTbtc');
 const operationType = DepositTx.Type.MINT_TDT_TO_TBTC;

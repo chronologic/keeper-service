@@ -3,7 +3,7 @@ import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { ethClient } from '../../clients';
 import { DepositTx } from '../../entities';
-import { IDepositTxParams } from './depositTxHelper';
+import { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('mint_5_approveTdt');
 const operationType = DepositTx.Type.MINT_APPROVE_TDT;

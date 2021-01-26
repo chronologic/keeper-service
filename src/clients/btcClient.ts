@@ -7,7 +7,7 @@ import { BigNumber } from 'ethers';
 
 import { ELECTRUMX_HOST, ELECTRUMX_PORT, ELECTRUMX_PROTOCOL, ELECTRUMX_NETWORK, BTC_ZPRV } from '../env';
 import { createLogger } from '../logger';
-import { confirmTransaction, getAddressAtIndex } from './ethClient';
+import { getAddressAtIndex } from './ethClient';
 import { numberToBnBtc } from '../utils';
 import { IFundingProof } from '../types';
 import BitcoinHelpers from './BitcoinHelpers';

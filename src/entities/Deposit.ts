@@ -53,7 +53,7 @@ enum SystemStatus {
 export class Deposit {
   // TODO: improve this
   // lame definitions to achieve property access via Deposit.Status.REDEEMED
-  // and type declarations via status: Deposit['Status'] (Deposit.Status would be better though)
+  // and type annotations via status: Deposit['Status'] (Deposit.Status would be better though)
   static Status = Status;
 
   Status: Status;
@@ -101,6 +101,12 @@ export class Deposit {
 
   @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
   redemptionCostUsdEquivalent: number;
+
+  @Column({ ...bigNumberColumnOptions, nullable: true })
+  redemptionCostEthEquivalentWithFee: BigNumber;
+
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
+  redemptionCostUsdEquivalentWithFee: number;
 
   @Column({ type: 'smallint' })
   undercollateralizedThresholdPercent: number;

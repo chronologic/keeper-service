@@ -33,7 +33,7 @@ enum Status {
 export class DepositTx {
   // TODO: improve this
   // lame definitions to achieve property access via DepositTx.Status.CONFIRMED
-  // and type declarations via status: DepositTx['Status'] (DepositTx.Status would be better though)
+  // and type annotations via status: DepositTx['Status'] (DepositTx.Status would be better though)
   static Status = Status;
 
   Status: Status;
@@ -67,6 +67,12 @@ export class DepositTx {
 
   @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
   txCostUsdEquivalent: number;
+
+  @Column({ ...bigNumberColumnOptions, nullable: true })
+  txCostEthEquivalentWithFee: BigNumber;
+
+  @Column({ type: 'numeric', precision: 10, scale: 2, nullable: true })
+  txCostUsdEquivalentWithFee: number;
 
   @CreateDateColumn()
   createDate: Date;

@@ -1,13 +1,19 @@
 import { getConnection } from 'typeorm';
 
 import { MINUTE_MILLIS } from '../constants';
-import { COLLATERAL_BUFFER_PERCENT, COLLATERAL_CHECK_INTERVAL_MINUTES, MIN_LOT_SIZE_BTC } from '../env';
+import {
+  COLLATERAL_BUFFER_PERCENT,
+  COLLATERAL_CHECK_INTERVAL_MINUTES,
+  MIN_LOT_SIZE_BTC,
+  MIN_USER_BALANCE_ETH,
+} from '../env';
 import { createLogger } from '../logger';
 import { depositContractAt } from '../contracts';
-import { bnToNumberBtc, bnToNumberEth, numberToBnBtc } from '../utils';
-import { Deposit } from '../entities';
+import { bnToNumberBtc, bnToNumberEth, numberToBnBtc, numberToBnEth } from '../utils';
+import { Deposit, Operator, User } from '../entities';
 import priceFeed from './priceFeed';
 import depositHelper from './depositHelper';
+import { redeemerMinter } from './redeemMint';
 
 const logger = createLogger('depositMonitor');
 const minLotSize = numberToBnBtc(MIN_LOT_SIZE_BTC).toString();
@@ -53,6 +59,8 @@ async function checkDeposits(): Promise<void> {
   logger.info(
     `🎉 checked ${deposits.length} collateral. Attempted to mark ${depositsToRedeem.length} for redemption. Marked ${marked} for redemption, skipped ${skipped}`
   );
+
+  redeemerMinter.checkForDepositToProcess();
 }
 
 function shouldRedeemDeposit(deposit: Deposit, ethToBtcRatio: number): boolean {
@@ -108,8 +116,7 @@ async function markDepositForRedemption(deposit: Deposit): Promise<void> {
 
 async function getDepositsToCheck(): Promise<Deposit[]> {
   const connection = getConnection();
-  // TODO: only include subscribed operators
-  const deposits = await connection
+  const q = connection
     .createQueryBuilder()
     .select('*')
     .from(Deposit, 'd')
@@ -117,11 +124,23 @@ async function getDepositsToCheck(): Promise<Deposit[]> {
     .where('d.statusCode in (:...redeemableStatusCodes)', { redeemableStatusCodes })
     .andWhere('d.systemStaus is null')
     .andWhere('d.bondedEth > 0')
-    .andWhere('d.lotSizeSatoshis > :minLotSize', { minLotSize })
-    .execute();
+    .andWhere('d.lotSizeSatoshis > :minLotSize', { minLotSize });
+
+  // only check deposits associated with users that have enough funds
+  const subq = q
+    .subQuery()
+    .select('1')
+    .from(User, 'u')
+    .innerJoin('u.operators', 'o')
+    .innerJoin('o.deposits', 'd2')
+    .where('d2.id = d.id')
+    .andWhere('"u.balanceEth" > :minBalance', { minBalance: numberToBnEth(MIN_USER_BALANCE_ETH) });
+
+  const deposits = await q.andWhere(`exists ${subq.getQuery()}`).execute();
+
   logger.debug(`found ${deposits.length} deposits to check`);
 
-  return [deposits[0]];
+  return deposits;
 }
 
 export default {

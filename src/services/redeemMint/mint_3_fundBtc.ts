@@ -4,7 +4,7 @@ import { createLogger } from '../../logger';
 import { btcClient } from '../../clients';
 import priceFeed from '../priceFeed';
 import { DepositTx } from '../../entities';
-import { IDepositTxParams } from './depositTxHelper';
+import { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('mint_3_fundBtc');
 const operationType = DepositTx.Type.MINT_FUND_BTC;

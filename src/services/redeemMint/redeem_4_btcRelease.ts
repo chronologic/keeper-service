@@ -4,7 +4,7 @@ import { createLogger } from '../../logger';
 import { btcClient, ethClient } from '../../clients';
 import priceFeed from '../priceFeed';
 import { DepositTx } from '../../entities';
-import depositTxHelper, { IDepositTxParams } from './depositTxHelper';
+import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('redeem_4_btcRelease');
 const operationType = DepositTx.Type.REDEEM_BTC_RELEASE;

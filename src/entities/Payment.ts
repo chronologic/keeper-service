@@ -11,6 +11,11 @@ enum Status {
 
 @Entity()
 export class Payment {
+  // TODO: improve this
+  // lame definitions to achieve property access via Payment.Status.CONFIRMED
+  // and type annotations via status: Payment['Status'] (Payment.Status would be better though)
+  Status: Status;
+
   static Status = Status;
 
   @PrimaryGeneratedColumn()

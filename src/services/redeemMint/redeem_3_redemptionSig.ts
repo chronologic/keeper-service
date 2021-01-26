@@ -5,7 +5,7 @@ import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { ethClient } from '../../clients';
 import { DepositTx } from '../../entities';
-import depositTxHelper, { IDepositTxParams } from './depositTxHelper';
+import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('redeem_3_redemptionSig');
 const operationType = DepositTx.Type.REDEEM_PROVIDE_REDEMPTION_SIG;

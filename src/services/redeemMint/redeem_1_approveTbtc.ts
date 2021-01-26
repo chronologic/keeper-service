@@ -3,7 +3,7 @@ import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { ethClient } from '../../clients';
 import { DepositTx } from '../../entities';
-import { IDepositTxParams } from './depositTxHelper';
+import { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('redeem_1_approveTbtc');
 const operationType = DepositTx.Type.REDEEM_APPROVE_TBTC;
