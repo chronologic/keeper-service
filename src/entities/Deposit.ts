@@ -119,7 +119,7 @@ export class Deposit {
   redemptionAddressIndex: number;
 
   @Index()
-  @Column({ type: 'string', length: 40 })
+  @Column({ type: 'varchar', length: 40 })
   status: Status;
 
   @Index()
@@ -127,7 +127,7 @@ export class Deposit {
   statusCode: number;
 
   @Index()
-  @Column({ type: 'string', length: 40, nullable: true })
+  @Column({ type: 'varchar', length: 40, nullable: true })
   systemStatus: SystemStatus;
 
   @Column({ type: 'timestamp with time zone' })

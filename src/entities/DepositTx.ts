@@ -52,11 +52,11 @@ export class DepositTx {
   depositId: number;
 
   @Index()
-  @Column({ type: 'string', length: 50 })
+  @Column({ type: 'varchar', length: 50 })
   operationType: Type;
 
   @Index()
-  @Column({ type: 'string', length: 20 })
+  @Column({ type: 'varchar', length: 20 })
   status: Status;
 
   @Column({ transformer: lowercaseTransformer, nullable: true })

@@ -12,6 +12,11 @@ export const ELECTRUMX_PORT = process.env.ELECTRUMX_PORT as string;
 export const ELECTRUMX_PROTOCOL = process.env.ELECTRUMX_PROTOCOL as string;
 export const BTC_ZPRV = process.env.BTC_ZPRV as string;
 
+export const MAILJET_API_KEY = process.env.MAILJET_API_KEY as string;
+export const MAILJET_API_SECRET = process.env.MAILJET_API_SECRET as string;
+export const ADMIN_EMAIL_RECIPIENTS = (process.env.ADMIN_EMAIL_RECIPIENTS as string).split(',');
+export const EMAIL_SENDER = process.env.EMAIL_SENDER as string;
+
 export const SYNC_MIN_BLOCK = Number(process.env.SYNC_MIN_BLOCK || 10880657);
 export const COLLATERAL_CHECK_INTERVAL_MINUTES = Number(process.env.COLLATERAL_CHECK_INTERVAL_MINUTES || 5);
 export const COLLATERAL_BUFFER_PERCENT = Number(process.env.COLLATERAL_BUFFER_PERCENT || 5);

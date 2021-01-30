@@ -120,7 +120,6 @@ async function getDepositsToCheck(): Promise<Deposit[]> {
     .createQueryBuilder()
     .select('*')
     .from(Deposit, 'd')
-    .innerJoin('d.operators', 'o')
     .where('d.statusCode in (:...redeemableStatusCodes)', { redeemableStatusCodes })
     .andWhere('d.systemStaus is null')
     .andWhere('d.bondedEth > 0')

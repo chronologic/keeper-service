@@ -6,6 +6,7 @@ import { MIN_USER_BALANCE_ETH, USER_TX_FEE_PERCENT } from '../env';
 import { createLogger } from '../logger';
 import { numberToBnEth } from '../utils';
 import priceFeed from './priceFeed';
+import userHelper from './userHelper';
 
 const logger = createLogger('depositTxHelper');
 
@@ -121,15 +122,7 @@ async function store(
 
 async function addUserTxPaymentRecords(depositTx: DepositTx): Promise<void> {
   const conn = getConnection();
-  const protectedUsers = await conn
-    .createQueryBuilder()
-    .select('DISTINCT "user.id"')
-    .from(User, 'u')
-    .innerJoin('u.operators', 'o')
-    .innerJoin('o.deposits', 'd')
-    .where('d.id = :depositId', { depositId: depositTx.depositId })
-    .andWhere('"u.balanceEth" > :minBalance', { minBalance: numberToBnEth(MIN_USER_BALANCE_ETH) })
-    .execute();
+  const protectedUsers = await userHelper.getProtectedUsersForDeposit(depositTx.depositId);
 
   const userCount = protectedUsers.length;
 
@@ -139,9 +132,9 @@ async function addUserTxPaymentRecords(depositTx: DepositTx): Promise<void> {
     .into(UserDepositTxPayment)
     .values(
       protectedUsers.map(
-        (id: number) =>
+        (user) =>
           ({
-            userId: id,
+            userId: user.id,
             depositTx,
             txCostEthEquivalent: depositTx.txCostEthEquivalent.div(userCount),
             txCostEthEquivalentWithFee: depositTx.txCostEthEquivalentWithFee.div(userCount),

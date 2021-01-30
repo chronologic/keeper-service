@@ -7,6 +7,19 @@ import { depositContractAt, keepContractAt } from '../contracts';
 
 const logger = createLogger('depositHelper');
 
+async function getById(depositId: number): Promise<Deposit> {
+  const deposit = await getConnection()
+    .createEntityManager()
+    .findOne(Deposit, {
+      where: { id: depositId },
+      relations: ['mintedDeposit'],
+    });
+
+  logger.debug(`Retrieved deposit for id ${depositId}`, deposit);
+
+  return deposit;
+}
+
 async function getByAddress(address: string): Promise<Deposit> {
   const deposit = await getConnection()
     .createEntityManager()
@@ -15,7 +28,7 @@ async function getByAddress(address: string): Promise<Deposit> {
       relations: ['mintedDeposit'],
     });
 
-  logger.debug(`Retrieved deposit for address ${address} \n ${JSON.stringify(deposit, null, 2)}`);
+  logger.debug(`Retrieved deposit for address ${address}`, deposit);
 
   return deposit;
 }
@@ -122,6 +135,7 @@ async function storeOperator(operator: Operator): Promise<Operator> {
 }
 
 export default {
+  getById,
   getByAddress,
   updateStatus,
   updateSystemStatus,
