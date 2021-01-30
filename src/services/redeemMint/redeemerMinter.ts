@@ -32,22 +32,6 @@ interface IStepParams {
 const logger = createLogger('redeem/mint');
 let busy = false;
 
-export async function init(): Promise<any> {
-  await checkForDepositToProcess();
-  // console.log('init');
-  // const deposit = await getDeposit('0x451bd3a7d204ce27e3c3524a7fd5f3f602ef1b4a');
-  // const depositContract = depositContractAt(deposit.depositAddress);
-  // const statusCode = await depositContract.getStatusCode();
-  // console.log('deposit is in status:', Deposit.Status[statusCode]);
-  // processDeposit(deposit);
-  // checkForDepositToProcess();
-  // const deposit = depositContractAt('0x41f92f9c627132a613a14de9a28aebc721607b90');
-  // const statusCode = await deposit.getStatusCode();
-  // console.log('deposit is in status:', DepositStatus[statusCode]);
-  // const signerFee = await deposit.getSignerFeeTbtc();
-  // console.log('signer fee:', signerFee.toString());
-}
-
 export async function checkForDepositToProcess(): Promise<void> {
   if (!busy) {
     busy = true;
@@ -202,5 +186,3 @@ async function tryExecuteFn(
     throw e;
   }
 }
-
-export default { init };
