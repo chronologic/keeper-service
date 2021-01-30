@@ -232,21 +232,21 @@ async function adminAccountBalanceLow(address: string, formattedBalance: number,
   });
 }
 
-async function adminAccountToppedUp(
+async function adminSystemBalanceAnomaly(
   address: string,
-  txHash: string,
-  formattedAmount: number,
-  formattedBalance: BigNumber,
+  formattedPrevBalance: number,
+  formattedNewBalance: number,
   currency: string
 ): Promise<void> {
-  const cacheKey = `ADMIN:ACCOUNT_TOP_UP:${txHash}`;
+  const cacheKey = `ADMIN:SYSTEM_BALANCE_ANOMALY:${currency}`;
   const cacheTtl = 10 * MINUTE_MILLIS;
 
   const getEmailParams: EmailParamsGetter = async () => {
-    const subject = `💲 Account topped up - ${formattedAmount} ${currency} to ${address}`;
+    const subject = `⚠ System ${currency} balance anomaly - ${formattedPrevBalance} => ${formattedNewBalance}`;
     const recipients = ADMIN_EMAIL_RECIPIENTS;
-    const body = `System account ${address} has been credited with ${formattedAmount} ${currency} in transaction ${txHash}.
-System ${currency} balance is now ${formattedBalance}`;
+    const body = `The system detected an anomaly in ${currency} balance of system address ${address}.
+Balance before redemption: ${formattedPrevBalance}
+Balance after redemption: ${formattedNewBalance}`;
 
     return { recipients, subject, body };
   };
@@ -258,20 +258,14 @@ System ${currency} balance is now ${formattedBalance}`;
   });
 }
 
-async function adminAccountTopUpError(
-  address: string,
-  txHash: string,
-  formattedAmount: number,
-  currency: string,
-  error: Error
-): Promise<void> {
-  const cacheKey = `ADMIN:ACCOUNT_TOP_UP_ERROR:${txHash}`;
+async function adminGenericError(source: string, error: Error): Promise<void> {
+  const cacheKey = `ADMIN:GENERIC_ERROR:${source}`;
   const cacheTtl = 10 * MINUTE_MILLIS;
 
   const getEmailParams: EmailParamsGetter = async () => {
-    const subject = `💲❌ Account top up ERROR - ${formattedAmount} ${currency} to ${address}`;
+    const subject = `❌ ERROR - ${error.message.substr(0, 50)}`;
     const recipients = ADMIN_EMAIL_RECIPIENTS;
-    const body = `The system failed to credit system address ${address} with ${formattedAmount} ${currency} in transaction ${txHash} due to an error.
+    const body = `The system encountered the following error in ${source}:
   ${error.message}
 
   ${error.stack}`;
@@ -347,7 +341,7 @@ export default {
     redemptionComplete: adminRedemptionComplete,
     redemptionError: adminRedemptionError,
     accountBalanceLow: adminAccountBalanceLow,
-    accountToppedUp: adminAccountToppedUp,
-    accountTopUpError: adminAccountTopUpError,
+    genericError: adminGenericError,
+    systemBalanceAnomaly: adminSystemBalanceAnomaly,
   },
 };

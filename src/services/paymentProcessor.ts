@@ -9,6 +9,7 @@ import { Payment } from '../entities/Payment';
 import { User } from '../entities/User';
 import { MINUTE_MILLIS } from '../constants';
 import { bnToNumberEth } from '../utils';
+import emailService from './emailService';
 
 const logger = createLogger('paymentProcessor');
 const SYNC_INTERVAL_MINUTES = 5;
@@ -69,22 +70,28 @@ async function confirmAndStoreTransferEvent(event: Event): Promise<boolean> {
   const parsed = userPayment.contract.interface.parseLog(event);
   const [from, _to, amount]: [string, string, BigNumber] = parsed.args as any;
   const txHash = event.transactionHash;
+  let stored = false;
 
-  const { success } = await ethClient.confirmTransaction(txHash);
+  try {
+    const { success } = await ethClient.confirmTransaction(txHash);
 
-  const stored = await maybeStoreTransfer({
-    amount,
-    blockNumber: event.blockNumber,
-    from,
-    txHash,
-    success,
-  });
+    stored = await maybeStoreTransfer({
+      amount,
+      blockNumber: event.blockNumber,
+      from,
+      txHash,
+      success,
+    });
 
-  logger.info(
-    `✅ ${stored ? 'stored' : 'skipped'} ${success ? 'SUCCESSFUL' : 'FAILED'} payment from ${from} for ${bnToNumberEth(
-      amount
-    )} ETH`
-  );
+    logger.info(
+      `✅ ${stored ? 'stored' : 'skipped'} ${
+        success ? 'SUCCESSFUL' : 'FAILED'
+      } payment from ${from} for ${bnToNumberEth(amount)} ETH`
+    );
+  } catch (e) {
+    logger.error(e?.message, e?.stack);
+    emailService.admin.genericError('confirmAndStoreTransferEvent', e);
+  }
 
   return stored;
 }
@@ -119,9 +126,11 @@ async function maybeStoreTransfer({
     });
 
     if (success) {
-      await addEthToUserBalance(txManager, user, amount);
+      const newBalance = await addEthToUserBalance(txManager, user, amount);
+      emailService.accountToppedUp(user, user.address, txHash, amount, newBalance);
+    } else {
+      emailService.accountTopUpError(user, user.address, txHash, amount);
     }
-    // TODO: send email
     return true;
   });
 }

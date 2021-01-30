@@ -1,6 +1,11 @@
 import { BigNumber } from 'ethers';
 import { getConnection } from 'typeorm';
+
 import { Payment, User, UserDepositTxPayment } from '../entities';
+import { USER_BALANCE_ETH_NOTIFICATION_THRESHOLD } from '../env';
+import { numberToBnEth } from '../utils';
+import emailService from './emailService';
+import userHelper from './userHelper';
 
 async function updateAllUserBalances(): Promise<void> {
   const users = await getConnection().createEntityManager().find(User);
@@ -11,17 +16,10 @@ async function updateAllUserBalances(): Promise<void> {
 }
 
 async function updateUserBalancesForDeposit(depositId: number): Promise<void> {
-  const ids = await getConnection()
-    .createQueryBuilder()
-    .select('DISTINCT u.id')
-    .from(User, 'u')
-    .innerJoin('u.operators', 'o')
-    .innerJoin('o.deposits', 'd')
-    .where('d.id = :depositId', { depositId })
-    .execute();
+  const users = await userHelper.getUsersForDeposit(depositId);
 
-  for (const id of ids) {
-    await updateUserBalance(id);
+  for (const user of users) {
+    await updateUserBalance(user.id);
   }
 }
 
@@ -58,7 +56,22 @@ async function getUserPaymentsSum(userId: number): Promise<BigNumber> {
   return BigNumber.from(sum);
 }
 
+async function checkUserBalancesForDeposit(depositId: number): Promise<void> {
+  const users = await userHelper.getUsersForDeposit(depositId);
+
+  for (const user of users) {
+    await checkUserBalance(user);
+  }
+}
+
+async function checkUserBalance(user: User): Promise<void> {
+  if (user.balanceEth.lte(numberToBnEth(USER_BALANCE_ETH_NOTIFICATION_THRESHOLD))) {
+    emailService.accountBalanceLow(user);
+  }
+}
+
 export default {
   updateAllUserBalances,
   updateUserBalancesForDeposit,
+  checkUserBalancesForDeposit,
 };

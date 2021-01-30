@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 import { ETH_NETWORK, ETH_XPRV, INFURA_API_KEY } from '../env';
 import { ETH_MIN_CONFIRMATIONS, SECOND_MILLIS } from '../constants';
@@ -39,4 +39,8 @@ export function isTransactionSuccessful(txReceipt: ethers.providers.TransactionR
 
 export function bytesToRaw(bytesString: string): string {
   return bytesString.replace('0x', '').slice(2);
+}
+
+export async function getEthBalance(address: string): Promise<BigNumber> {
+  return httpProvider.getBalance(address);
 }

@@ -100,7 +100,7 @@ const NETWORK = getNetworkFromEnv();
 const TEST_ADDRESS = getAddressAtIndex(999999); // "random" address for fee estimation
 // eslint-disable-next-line new-cap
 const wallet = new bip84.fromZPrv(BTC_ZPRV);
-const zpub = wallet.getAccountPublicKey();
+export const zpub = wallet.getAccountPublicKey();
 
 BitcoinHelpers.setElectrumConfig({
   protocol: ELECTRUMX_PROTOCOL,

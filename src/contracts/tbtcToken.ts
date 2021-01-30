@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 import { ethClient } from '../clients';
 import { IEthTx } from '../types';
@@ -9,4 +9,10 @@ export const contract = new ethers.Contract(address, abi, ethClient.defaultWalle
 
 export async function approve(spender: string, amount: ethers.BigNumber): Promise<IEthTx> {
   return contract.functions.approve(spender, amount);
+}
+
+export async function balanceOf(address: string): Promise<BigNumber> {
+  const [balance] = await contract.functions.balanceOf(address);
+
+  return balance;
 }

@@ -6,6 +6,8 @@ import { Deposit, DepositTx } from '../../entities';
 import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
 import depositHelper from '../depositHelper';
 import userAccountingHelper from '../userAccountingHelper';
+import emailService from '../emailService';
+import systemAccountingHelper from '../systemAccountingHelper';
 import redeem_1_approveTbtc from './redeem_1_approveTbtc';
 import redeem_2_requestRedemption from './redeem_2_requestRedemption';
 import redeem_3_redemptionSig from './redeem_3_redemptionSig';
@@ -46,9 +48,6 @@ export async function init(): Promise<any> {
   // console.log('signer fee:', signerFee.toString());
 }
 
-// as long as there are deposits to process
-// the system will recursively keep looking for more
-// if nothing found, we're done (for now)
 export async function checkForDepositToProcess(): Promise<void> {
   if (!busy) {
     busy = true;
@@ -57,6 +56,7 @@ export async function checkForDepositToProcess(): Promise<void> {
     if (deposit) {
       await processDeposit(deposit);
       busy = false;
+      // when a deposit is processed, check for more (new redemption could've been triggered in the meantime)
       checkForDepositToProcess();
     }
     busy = false;
@@ -67,29 +67,27 @@ async function getDepositToProcess(): Promise<Deposit> {
   const connection = getConnection();
   const deposits = await connection.createEntityManager().find(Deposit, {
     where: { systemStatus: [Deposit.SystemStatus.QUEUED_FOR_REDEMPTION, Deposit.SystemStatus.REDEEMING] },
+    // ordering by status DESC ensures deposits in REDEEMING status will be processed first (i.e. interrupted process will be picked up)
     order: { systemStatus: 'DESC', createDate: 'ASC' },
   });
-
-  const redeemingFirstDeposits = deposits.sort((d1, d2) => d2.systemStatus.localeCompare(d1.systemStatus));
 
   // TODO: order by collateralization % ?
   // TODO: double check collateralization %
 
   logger.info(`Found ${deposits.length} deposits to process`);
 
-  return redeemingFirstDeposits[0];
+  return deposits[0];
 }
 
 async function processDeposit(deposit: Deposit): Promise<void> {
-  // TODO: check for errors, if 3 errors in one operation type - set deposit state to ERROR
-  // TODO: between each call:
-  // - check deposit status
+  await systemAccountingHelper.rememberSystemBalances();
 
   try {
     const updated = await depositHelper.updateSystemStatus(deposit.depositAddress, Deposit.SystemStatus.REDEEMING);
 
     if (updated) {
-      // TODO: email if process changed from queued to redeeming
+      emailService.redemptionStart(deposit);
+      emailService.admin.redemptionStart(deposit);
     }
 
     const steps: IStepParams[] = [
@@ -116,12 +114,19 @@ async function processDeposit(deposit: Deposit): Promise<void> {
       });
     }
 
-    // TODO: email on success/error
+    emailService.redemptionComplete(deposit);
+    emailService.admin.redemptionComplete(deposit);
+
     // TODO: check system balances before / after execution
   } catch (e) {
     logger.error(e?.message);
+    emailService.redemptionError(deposit);
+    emailService.admin.redemptionError(deposit, e);
   } finally {
     await userAccountingHelper.updateUserBalancesForDeposit(deposit.id);
+    await userAccountingHelper.checkUserBalancesForDeposit(deposit.id);
+    await systemAccountingHelper.compareSystemBalances();
+    await systemAccountingHelper.checkSystemBalances();
   }
 }
 
@@ -130,16 +135,14 @@ async function executeStep({
   confirmFn,
   executeFn,
   operationType,
-}: // retries,
-{
+}: {
   deposit: Deposit;
   confirmFn: ConfirmFn;
   executeFn: ExecuteFn;
   operationType: DepositTx['Type'];
 }): Promise<void> {
   logger.info(`Initiating ${operationType} for deposit ${deposit.depositAddress}...`);
-  // TODO: double check status on blockchain
-  // TODO: check balances
+
   if (depositTxHelper.hasConfirmedTxOfType(deposit.id, operationType)) {
     logger.info(`${operationType} is ${DepositTx.Status.CONFIRMED} for deposit ${deposit.depositAddress}.`);
   }
