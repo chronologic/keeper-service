@@ -4,6 +4,7 @@ import { MINUTE_MILLIS } from '../constants';
 import {
   COLLATERAL_BUFFER_PERCENT,
   COLLATERAL_CHECK_INTERVAL_MINUTES,
+  MAX_LOT_SIZE_BTC,
   MIN_LOT_SIZE_BTC,
   MIN_USER_BALANCE_ETH,
 } from '../env';
@@ -17,6 +18,7 @@ import { redeemerMinter } from './redeemMint';
 
 const logger = createLogger('depositMonitor');
 const minLotSize = numberToBnBtc(MIN_LOT_SIZE_BTC).toString();
+const maxLotSize = numberToBnBtc(MAX_LOT_SIZE_BTC).toString();
 const COLLATERAL_CHECK_INTERVAL = COLLATERAL_CHECK_INTERVAL_MINUTES * MINUTE_MILLIS;
 
 const redeemableStatusCodes = [
@@ -123,7 +125,8 @@ async function getDepositsToCheck(): Promise<Deposit[]> {
     .where('d.statusCode in (:...redeemableStatusCodes)', { redeemableStatusCodes })
     .andWhere('d.systemStaus is null')
     .andWhere('d.bondedEth > 0')
-    .andWhere('d.lotSizeSatoshis > :minLotSize', { minLotSize });
+    .andWhere('d.lotSizeSatoshis >= :minLotSize', { minLotSize })
+    .andWhere('d.lotSizeSatoshis <= :maxLotSize', { maxLotSize });
 
   // only check deposits associated with users that have enough funds
   const subq = q
@@ -133,7 +136,7 @@ async function getDepositsToCheck(): Promise<Deposit[]> {
     .innerJoin('u.operators', 'o')
     .innerJoin('o.deposits', 'd2')
     .where('d2.id = d.id')
-    .andWhere('"u.balanceEth" > :minBalance', { minBalance: numberToBnEth(MIN_USER_BALANCE_ETH) });
+    .andWhere('"u.balanceEth" >= :minBalance', { minBalance: numberToBnEth(MIN_USER_BALANCE_ETH) });
 
   const deposits = await q.andWhere(`exists ${subq.getQuery()}`).execute();
 

@@ -25,7 +25,7 @@ async function getProtectedUsersForDeposit(depositId: number): Promise<User[]> {
     .createQueryBuilder()
     .select('*')
     .from(User, 'u')
-    .where('"u.balanceEth" > :minBalance', { minBalance: numberToBnEth(MIN_USER_BALANCE_ETH) });
+    .where('"u.balanceEth" >= :minBalance', { minBalance: numberToBnEth(MIN_USER_BALANCE_ETH) });
 
   const subq = q
     .subQuery()
