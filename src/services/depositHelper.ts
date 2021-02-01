@@ -111,7 +111,7 @@ async function store(deposit: Deposit): Promise<Deposit> {
   depositDb = (await manager.save(Deposit, {
     ...depositDb,
     ...deposit,
-    blockNumber: Math.min(depositDb.blockNumber, deposit.blockNumber),
+    blockNumber: Math.min(depositDb?.blockNumber || Infinity, deposit.blockNumber),
   })) as Deposit;
 
   return depositDb;

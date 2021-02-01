@@ -21,7 +21,7 @@ async function syncPeriodically(): Promise<void> {
   try {
     await syncDepositsFromLogs();
   } catch (e) {
-    logger.error(e.message);
+    logger.error(e);
   }
   logger.info(`Next run in ${SYNC_INTERVAL_MINUTES} minutes`);
   setTimeout(syncPeriodically, SYNC_INTERVAL);
