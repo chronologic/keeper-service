@@ -1,9 +1,11 @@
 import './env';
 import { createConnection } from 'typeorm';
-import logger from './logger';
+import { createLogger } from './logger';
 import manager from './manager';
 
+const logger = createLogger('server');
+
 createConnection().then(() => {
-  logger.log('\x1b[36m%s\x1b[0m', 'Server started');
+  logger.info('Server started');
   manager.start();
 });

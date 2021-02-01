@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+export const LOG_LEVEL = process.env.LOG_LEVEL as string;
+
 export const ETH_NETWORK = process.env.ETH_NETWORK as string;
 export const INFURA_API_KEY = process.env.INFURA_API_KEY as string;
 export const ETH_XPRV = process.env.ETH_XPRV as string;
