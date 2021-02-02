@@ -20,7 +20,7 @@ export const ADMIN_EMAIL_RECIPIENTS = (process.env.ADMIN_EMAIL_RECIPIENTS as str
 export const EMAIL_SENDER = process.env.EMAIL_SENDER as string;
 
 export const MIN_USER_BALANCE_ETH = Number(process.env.MIN_USER_BALANCE_ETH || 0);
-export const USER_BALANCE_ETH_NOTIFICATION_THRESHOLD = Number(process.env.USER_BALANCE_ETH_NOTIFICATION_THRESHOLD || 0);
+export const WARNING_USER_BALANCE_ETH = Number(process.env.WARNING_USER_BALANCE_ETH || 0);
 export const USER_TX_FEE_PERCENT = Number(process.env.USER_TX_FEE_PERCENT || 0);
 
 export const SYNC_MIN_BLOCK = Number(process.env.SYNC_MIN_BLOCK || 10880657);

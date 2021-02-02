@@ -2,7 +2,7 @@ import { BigNumber } from 'ethers';
 import { getConnection } from 'typeorm';
 
 import { Payment, User, UserDepositTxPayment } from '../entities';
-import { USER_BALANCE_ETH_NOTIFICATION_THRESHOLD } from '../env';
+import { WARNING_USER_BALANCE_ETH } from '../env';
 import { numberToBnEth } from '../utils';
 import emailService from './emailService';
 import userHelper from './userHelper';
@@ -65,7 +65,7 @@ async function checkUserBalancesForDeposit(depositId: number): Promise<void> {
 }
 
 async function checkUserBalance(user: User): Promise<void> {
-  if (user.balanceEth.lte(numberToBnEth(USER_BALANCE_ETH_NOTIFICATION_THRESHOLD))) {
+  if (user.balanceEth.lte(numberToBnEth(WARNING_USER_BALANCE_ETH))) {
     emailService.accountBalanceLow(user);
   }
 }
