@@ -34,18 +34,25 @@ const logger = createLogger('redeem/mint');
 let busy = false;
 
 export async function checkForDepositToProcess(): Promise<void> {
-  if (!busy) {
+  if (busy) {
+    logger.info('Process is busy');
+  } else {
+    logger.info('Checking for deposit to process...');
     busy = true;
     const deposit = await getDepositToProcess();
 
     if (deposit) {
-      logger.info('Found a deposit to process. Making sure system balances are sufficient...');
+      logger.info(`Found deposit ${deposit.depositAddress} to process. Making sure system balances are sufficient...`);
       logger.debug(deposit);
       await ensureSufficientSystemBalances();
+      logger.info(`Processing deposit ${deposit.depositAddress}...`);
       await processDeposit(deposit);
+      logger.info(`Deposit ${deposit.depositAddress} processed`);
       busy = false;
       // when a deposit is processed, check for more (new redemption could've been triggered in the meantime)
       checkForDepositToProcess();
+    } else {
+      logger.info('No deposits to process');
     }
     busy = false;
   }
