@@ -114,7 +114,7 @@ async function accountToppedUp(
     const subject = `💲 Account topped up - ${formattedAmount} ETH to ${address}`;
     const recipients = [user.email];
     const body = `Your account ${address} has been credited with ${formattedAmount} ETH in transaction ${txHash}.
-Your total balance is now ${bnToNumberEth(balance)}`;
+Your total balance is now ${bnToNumberEth(balance)} ETH`;
 
     return { recipients, subject, body };
   };
