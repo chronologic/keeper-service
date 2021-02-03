@@ -19,6 +19,7 @@ import mint_3_fundBtc from './mint_3_fundBtc';
 import mint_4_fundingProof from './mint_4_fundingProof';
 import mint_5_approveTdt from './mint_5_approveTdt';
 import mint_6_tdtToTbtc from './mint_6_tdtToTbtc';
+import { MINUTE_MILLIS } from '../../constants';
 
 type ConfirmFn = (deposit: Deposit, txHash: string) => Promise<IDepositTxParams>;
 type ExecuteFn = (deposit: Deposit) => Promise<IDepositTxParams>;
@@ -38,6 +39,9 @@ export async function checkForDepositToProcess(): Promise<void> {
     const deposit = await getDepositToProcess();
 
     if (deposit) {
+      logger.info('Found a deposit to process. Making sure system balances are sufficient...');
+      logger.debug(deposit);
+      await ensureSufficientSystemBalances();
       await processDeposit(deposit);
       busy = false;
       // when a deposit is processed, check for more (new redemption could've been triggered in the meantime)
@@ -45,6 +49,17 @@ export async function checkForDepositToProcess(): Promise<void> {
     }
     busy = false;
   }
+}
+
+async function ensureSufficientSystemBalances(): Promise<void> {
+  const ok = await systemAccountingHelper.checkSystemBalances();
+
+  if (!ok) {
+    logger.error('System balance too low. Unable to process deposits!');
+    return new Promise((resolve) => setTimeout(() => resolve(ensureSufficientSystemBalances()), 30 * MINUTE_MILLIS));
+  }
+
+  return undefined;
 }
 
 async function getDepositToProcess(): Promise<Deposit> {
@@ -100,17 +115,15 @@ async function processDeposit(deposit: Deposit): Promise<void> {
 
     emailService.redemptionComplete(deposit);
     emailService.admin.redemptionComplete(deposit);
-
-    // TODO: check system balances before / after execution
   } catch (e) {
-    logger.error(e?.message);
+    logger.error(e);
     emailService.redemptionError(deposit);
     emailService.admin.redemptionError(deposit, e);
+    await depositHelper.updateSystemStatus(deposit.depositAddress, Deposit.SystemStatus.ERROR);
   } finally {
     await userAccountingHelper.updateUserBalancesForDeposit(deposit.id);
     await userAccountingHelper.checkUserBalancesForDeposit(deposit.id);
     await systemAccountingHelper.compareSystemBalances();
-    await systemAccountingHelper.checkSystemBalances();
   }
 }
 
@@ -156,7 +169,7 @@ async function tryConfirmFn(
 
     return res;
   } catch (e) {
-    logger.error(e?.message);
+    logger.error(e);
     await depositTxHelper.storeAndAddUserPayments(deposit, {
       status: DepositTx.Status.ERROR,
       txHash,
@@ -178,7 +191,7 @@ async function tryExecuteFn(
 
     return res;
   } catch (e) {
-    logger.error(e?.message);
+    logger.error(e);
     await depositTxHelper.storeAndAddUserPayments(deposit, {
       status: DepositTx.Status.ERROR,
       operationType,
