@@ -52,23 +52,29 @@ async function compareSystemBalances(): Promise<void> {
   }
 }
 
-async function checkSystemBalances(): Promise<void> {
+async function checkSystemBalances(): Promise<boolean> {
   const tbtcBalance = await tbtcToken.balanceOf(ethClient.defaultWallet.address);
   const ethBalance = await ethClient.defaultWallet.getBalance();
   const { confirmed: btcBalance } = await btcClient.getWalletBalance();
+  let ok = true;
 
   const minTbtcBalance = numberToBnEth(MIN_SYSTEM_TBTC_BALANCE);
   if (tbtcBalance.lt(minTbtcBalance)) {
     emailService.admin.accountBalanceLow(ethClient.defaultWallet.address, bnToNumberEth(tbtcBalance), 'TBTC');
+    ok = false;
   }
   const minEthBalance = numberToBnEth(MIN_SYSTEM_ETH_BALANCE);
   if (ethBalance.lt(minEthBalance)) {
     emailService.admin.accountBalanceLow(ethClient.defaultWallet.address, bnToNumberEth(ethBalance), 'ETH');
+    ok = false;
   }
   const minBtcBalance = numberToBnBtc(MIN_SYSTEM_BTC_BALANCE).toNumber();
   if (btcBalance < minBtcBalance) {
     emailService.admin.accountBalanceLow(btcClient.zpub, bnToNumberBtc(btcBalance), 'BTC');
+    ok = false;
   }
+
+  return ok;
 }
 
 export default {

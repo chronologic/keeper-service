@@ -23,7 +23,7 @@ async function syncPeriodically(): Promise<void> {
   try {
     await syncTransfersFromLogs();
   } catch (e) {
-    logger.error(e.message);
+    logger.error(e);
   }
   logger.info(`Next run in ${SYNC_INTERVAL_MINUTES} minutes`);
   setTimeout(syncPeriodically, SYNC_INTERVAL);
@@ -89,7 +89,7 @@ async function confirmAndStoreTransferEvent(event: Event): Promise<boolean> {
       } payment from ${from} for ${bnToNumberEth(amount)} ETH`
     );
   } catch (e) {
-    logger.error(e?.message, e?.stack);
+    logger.error(e);
     emailService.admin.genericError('confirmAndStoreTransferEvent', e);
   }
 

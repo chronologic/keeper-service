@@ -34,7 +34,7 @@ async function checkPeriodically(): Promise<void> {
   try {
     await checkDeposits();
   } catch (e) {
-    logger.error(e.message);
+    logger.error(e);
   }
   logger.info(`Next run in ${COLLATERAL_CHECK_INTERVAL_MINUTES} minutes`);
   setTimeout(checkPeriodically, COLLATERAL_CHECK_INTERVAL);
