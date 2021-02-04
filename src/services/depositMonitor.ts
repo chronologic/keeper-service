@@ -103,13 +103,14 @@ async function tryMarkDepositForRedemption(deposit: Deposit): Promise<boolean> {
 
 async function checkIsInRedeemableState(deposit: Deposit): Promise<boolean> {
   const statusCode = await depositContractAt(deposit.depositAddress).getStatusCode();
+  const status = Deposit.Status[statusCode];
 
-  if (redeemableStatusCodes.includes(Deposit.Status[statusCode] as any)) {
+  if (redeemableStatusCodes.includes(status)) {
     return true;
   }
 
   if (deposit.statusCode !== statusCode) {
-    await depositHelper.updateStatus(deposit.depositAddress, statusCode);
+    await depositHelper.updateStatus(deposit.depositAddress, status as any);
   }
 
   return false;
