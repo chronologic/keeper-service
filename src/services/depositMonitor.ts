@@ -58,9 +58,7 @@ async function checkDeposits(): Promise<void> {
     }
   }
 
-  logger.info(
-    `🎉 checked ${deposits.length} collateral. Attempted to mark ${depositsToRedeem.length} for redemption. Marked ${marked} for redemption, skipped ${skipped}`
-  );
+  logger.info(`🎉 checked ${deposits.length} deposit(s). Marked ${marked} for redemption, skipped ${skipped}`);
 
   redeemerMinter.checkForDepositToProcess();
 }
@@ -73,6 +71,11 @@ function shouldRedeemDeposit(deposit: Deposit, ethToBtcRatio: number): boolean {
   const adjustedUndercollateralizedThresholdPercent =
     deposit.undercollateralizedThresholdPercent + COLLATERAL_BUFFER_PERCENT;
   const isBelowRedemptionThreshold = collateralizationPercent < adjustedUndercollateralizedThresholdPercent;
+  logger.info(
+    `${isBelowRedemptionThreshold ? 'REDEEM' : 'OK'} deposit ${
+      deposit.depositAddress
+    } current collateralization %: ${collateralizationPercent}, min: ${adjustedUndercollateralizedThresholdPercent}`
+  );
   logger.debug({
     depositAddress: deposit.depositAddress,
     lotSizeBtc,

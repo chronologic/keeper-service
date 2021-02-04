@@ -41,25 +41,37 @@ async function convertSatoshiToUsd(satoshi: BigNumberish): Promise<number> {
 async function fetchEthToBtc(): Promise<number> {
   const prices = await fetchPrices();
 
-  return prices.ethereum.btc;
+  const rate = prices.ethereum.btc;
+  logger.info(`ETH => BTC rate is: ${rate}`);
+
+  return rate;
 }
 
 async function fetchBtcToEth(): Promise<number> {
   const prices = await fetchPrices();
 
-  return prices.bitcoin.eth;
+  const rate = prices.bitcoin.eth;
+  logger.info(`BTC => ETH rate is: ${rate}`);
+
+  return rate;
 }
 
 async function fetchEthToUsd(): Promise<number> {
   const prices = await fetchPrices();
 
-  return prices.ethereum.usd;
+  const rate = prices.ethereum.usd;
+  logger.info(`ETH => USD rate is: ${rate}`);
+
+  return rate;
 }
 
 async function fetchBtcToUsd(): Promise<number> {
   const prices = await fetchPrices();
 
-  return prices.bitcoin.usd;
+  const rate = prices.bitcoin.usd;
+  logger.info(`BTC => USD rate is: ${rate}`);
+
+  return rate;
 }
 
 async function fetchPrices(): Promise<IPrices> {
@@ -67,18 +79,18 @@ async function fetchPrices(): Promise<IPrices> {
   const cachedVal = cache.get(cacheKey);
 
   if (cachedVal) {
-    logger.debug(`cached prices are: ${JSON.stringify(cachedVal)}`);
+    logger.debug(`Cached prices are: ${JSON.stringify(cachedVal)}`);
     return cachedVal;
   }
 
-  logger.debug('fetching prices from coingecko...');
+  logger.info('Fetching prices from coingecko...');
   const res = await fetch(
     'https://api.coingecko.com/api/v3/simple/price?ids=ethereum,bitcoin&vs_currencies=btc,eth,usd'
   );
   const json = await res.json();
   cache.put(cacheKey, json);
 
-  logger.debug(`prices are: ${JSON.stringify(json)}`);
+  logger.debug(`Prices are: ${JSON.stringify(json)}`);
 
   return json;
 }
