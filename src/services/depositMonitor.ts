@@ -11,7 +11,7 @@ import {
 import { createLogger } from '../logger';
 import { depositContractAt } from '../contracts';
 import { bnToNumberBtc, bnToNumberEth, numberToBnBtc, numberToBnEth } from '../utils';
-import { Deposit, Operator, User } from '../entities';
+import { Deposit, User } from '../entities';
 import priceFeed from './priceFeed';
 import depositHelper from './depositHelper';
 import { redeemerMinter } from './redeemMint';
@@ -122,11 +122,11 @@ async function getDepositsToCheck(): Promise<Deposit[]> {
     .createQueryBuilder()
     .select('*')
     .from(Deposit, 'd')
-    .where('d.statusCode in (:...redeemableStatusCodes)', { redeemableStatusCodes })
-    .andWhere('d.systemStaus is null')
-    .andWhere('d.bondedEth > 0')
-    .andWhere('d.lotSizeSatoshis >= :minLotSize', { minLotSize })
-    .andWhere('d.lotSizeSatoshis <= :maxLotSize', { maxLotSize });
+    .where('d."status" in (:...redeemableStatusCodes)', { redeemableStatusCodes })
+    .andWhere('d."systemStatus" is null')
+    .andWhere('d."bondedEth" > 0')
+    .andWhere('d."lotSizeSatoshis" >= :minLotSize', { minLotSize })
+    .andWhere('d."lotSizeSatoshis" <= :maxLotSize', { maxLotSize });
 
   // only check deposits associated with users that have enough funds
   const subq = q
@@ -136,7 +136,7 @@ async function getDepositsToCheck(): Promise<Deposit[]> {
     .innerJoin('u.operators', 'o')
     .innerJoin('o.deposits', 'd2')
     .where('d2.id = d.id')
-    .andWhere('"u.balanceEth" >= :minBalance', { minBalance: numberToBnEth(MIN_USER_BALANCE_ETH) });
+    .andWhere('u."balanceEth" >= :minBalance', { minBalance: numberToBnEth(MIN_USER_BALANCE_ETH).toString() });
 
   const deposits = await q.andWhere(`exists ${subq.getQuery()}`).execute();
 
