@@ -35,7 +35,7 @@ async function getByAddress(address: string): Promise<Deposit> {
 
 async function updateStatus(address: string, status: Deposit['Status']): Promise<boolean> {
   const existingDeposit = await getByAddress(address);
-  if (existingDeposit.status !== status) {
+  if (existingDeposit.status === status) {
     return false;
   }
 
@@ -47,7 +47,7 @@ async function updateStatus(address: string, status: Deposit['Status']): Promise
 
 async function updateSystemStatus(address: string, systemStatus: Deposit['SystemStatus']): Promise<boolean> {
   const existingDeposit = await getByAddress(address);
-  if (existingDeposit.systemStatus !== systemStatus) {
+  if (existingDeposit.systemStatus === systemStatus) {
     return false;
   }
 
