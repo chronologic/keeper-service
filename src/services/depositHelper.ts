@@ -34,29 +34,38 @@ async function getByAddress(address: string): Promise<Deposit> {
 }
 
 async function updateStatus(address: string, status: Deposit['Status']): Promise<boolean> {
+  logger.debug(`Updating status of deposit ${address} to ${status}...`);
   const existingDeposit = await getByAddress(address);
   if (existingDeposit.status === status) {
+    logger.debug(`Status of deposit ${address} already is ${status}`);
     return false;
   }
 
   const statusCode = Deposit.Status[status] as any;
   await getConnection().createEntityManager().update(Deposit, { depositAddress: address }, { status, statusCode });
 
+  logger.debug(`Updated status of deposit ${address} to ${status}.`);
+
   return true;
 }
 
 async function updateSystemStatus(address: string, systemStatus: Deposit['SystemStatus']): Promise<boolean> {
+  logger.debug(`Updating system status of deposit ${address} to ${systemStatus}...`);
   const existingDeposit = await getByAddress(address);
   if (existingDeposit.systemStatus === systemStatus) {
+    logger.debug(`System status of deposit ${address} already is ${systemStatus}`);
     return false;
   }
 
   await getConnection().createEntityManager().update(Deposit, { depositAddress: address }, { systemStatus });
 
+  logger.debug(`Updated system status of deposit ${address} to ${systemStatus}`);
+
   return true;
 }
 
 async function build(address: string, createdAtBlock: number): Promise<Deposit> {
+  logger.debug(`Building deposit ${address} created at block ${createdAtBlock}...`);
   const deposit = new Deposit();
   deposit.blockNumber = createdAtBlock;
 
@@ -87,6 +96,8 @@ async function build(address: string, createdAtBlock: number): Promise<Deposit> 
     return operator;
   });
 
+  logger.debug(`Built deposit ${address} created at block ${createdAtBlock}`, deposit);
+
   return deposit;
 }
 
@@ -97,6 +108,7 @@ async function buildAndStore(address: string, createdAtBlock: number): Promise<D
 }
 
 async function store(deposit: Deposit): Promise<Deposit> {
+  logger.debug(`Storing deposit ${deposit.depositAddress}...`, deposit);
   const connection = getConnection();
   const manager = connection.createEntityManager();
   if (deposit.operators) {
@@ -114,10 +126,13 @@ async function store(deposit: Deposit): Promise<Deposit> {
     blockNumber: Math.min(depositDb?.blockNumber || Infinity, deposit.blockNumber),
   })) as Deposit;
 
+  logger.debug(`Stored deposit ${deposit.depositAddress}`, deposit);
+
   return depositDb;
 }
 
 async function storeOperator(operator: Operator): Promise<Operator> {
+  logger.debug(`Storing operator ${operator.address}...`, operator);
   const connection = getConnection();
   const manager = connection.createEntityManager();
 
@@ -126,10 +141,13 @@ async function storeOperator(operator: Operator): Promise<Operator> {
   });
 
   if (operatorDb) {
+    logger.debug(`Operator ${operator.address} already exists`);
     return operatorDb;
   }
 
   operatorDb = (await manager.save(Operator, operator)) as Operator;
+
+  logger.debug(`Stored operator ${operator.address}`, operator);
 
   return operatorDb;
 }
