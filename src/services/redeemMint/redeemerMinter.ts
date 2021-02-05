@@ -1,5 +1,6 @@
 /* eslint-disable camelcase */
 import { getConnection } from 'typeorm';
+import PubSub from 'pubsub-js';
 
 import { createLogger } from '../../logger';
 import { Deposit, DepositTx } from '../../entities';
@@ -20,6 +21,7 @@ import mint_4_fundingProof from './mint_4_fundingProof';
 import mint_5_approveTdt from './mint_5_approveTdt';
 import mint_6_tdtToTbtc from './mint_6_tdtToTbtc';
 import { MINUTE_MILLIS } from '../../constants';
+import { DEPOSITS_CHECKED_TOPIC } from '../depositMonitor';
 
 type ConfirmFn = (deposit: Deposit, txHash: string) => Promise<IDepositTxParams>;
 type ExecuteFn = (deposit: Deposit) => Promise<IDepositTxParams>;
@@ -33,7 +35,12 @@ interface IStepParams {
 const logger = createLogger('redeem/mint');
 let busy = false;
 
-export async function checkForDepositToProcess(): Promise<void> {
+async function init() {
+  PubSub.subscribe(DEPOSITS_CHECKED_TOPIC, checkForDepositToProcess);
+  logger.info('Listening for deposits to process...');
+}
+
+async function checkForDepositToProcess(): Promise<void> {
   if (busy) {
     logger.info('Process is busy');
   } else {
@@ -206,3 +213,7 @@ async function tryExecuteFn(
     throw e;
   }
 }
+
+export default {
+  init,
+};

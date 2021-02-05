@@ -1,1 +1,1 @@
-export * as redeemerMinter from './redeemerMinter';
+export { default } from './redeemerMinter';

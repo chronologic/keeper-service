@@ -1,4 +1,5 @@
 import { getConnection } from 'typeorm';
+import PubSub from 'pubsub-js';
 
 import { MINUTE_MILLIS } from '../constants';
 import {
@@ -14,8 +15,8 @@ import { bnToNumberBtc, bnToNumberEth, numberToBnBtc, numberToBnEth } from '../u
 import { Deposit, User } from '../entities';
 import priceFeed from './priceFeed';
 import depositHelper from './depositHelper';
-import { redeemerMinter } from './redeemMint';
 
+export const DEPOSITS_CHECKED_TOPIC = 'DEPOSITS_CHECKED';
 const logger = createLogger('depositMonitor');
 const minLotSize = numberToBnBtc(MIN_LOT_SIZE_BTC).toString();
 const maxLotSize = numberToBnBtc(MAX_LOT_SIZE_BTC).toString();
@@ -60,7 +61,7 @@ async function checkDeposits(): Promise<void> {
 
   logger.info(`🎉 checked ${deposits.length} deposit(s). Marked ${marked} for redemption, skipped ${skipped}`);
 
-  redeemerMinter.checkForDepositToProcess();
+  PubSub.publish(DEPOSITS_CHECKED_TOPIC);
 }
 
 function shouldRedeemDeposit(deposit: Deposit, ethToBtcRatio: number): boolean {
