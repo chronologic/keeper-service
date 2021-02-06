@@ -1,10 +1,8 @@
 import { BigNumber } from 'ethers';
-import { getConnection } from 'typeorm';
+import { getConnection, Deposit, DepositTx, UserDepositTxPayment } from 'keeper-db';
 
-import { Deposit, DepositTx, User, UserDepositTxPayment } from '../entities';
-import { MIN_USER_BALANCE_ETH, USER_TX_FEE_PERCENT } from '../env';
+import { USER_TX_FEE_PERCENT } from '../env';
 import { createLogger } from '../logger';
-import { numberToBnEth } from '../utils';
 import priceFeed from './priceFeed';
 import userHelper from './userHelper';
 

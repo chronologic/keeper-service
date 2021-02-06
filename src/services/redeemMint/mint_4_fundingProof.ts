@@ -1,8 +1,8 @@
+import { Deposit, DepositTx } from 'keeper-db';
+
 import { tbtcConstants, depositContractAt } from '../../contracts';
-import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { btcClient, ethClient } from '../../clients';
-import { DepositTx } from '../../entities';
 import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('mint_4_fundingProof');

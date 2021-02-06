@@ -1,11 +1,9 @@
-import { getConnection } from 'typeorm';
+import { getConnection, Deposit, DepositTx } from 'keeper-db';
 import BN from 'bn.js';
 
 import { vendingMachine, depositContractAt } from '../../contracts';
-import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { btcClient, ethClient } from '../../clients';
-import { DepositTx } from '../../entities';
 import { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('redeem_2_requestRedemption');

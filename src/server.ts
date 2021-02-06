@@ -1,5 +1,5 @@
 import './env';
-import { createConnection } from 'typeorm';
+import { createConnection } from 'keeper-db';
 import { createLogger } from './logger';
 import manager from './manager';
 

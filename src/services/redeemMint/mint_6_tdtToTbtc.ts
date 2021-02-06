@@ -1,10 +1,10 @@
+import { Deposit, DepositTx } from 'keeper-db';
+
 import { depositContractAt, vendingMachine } from '../../contracts';
-import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { ethClient } from '../../clients';
 import priceFeed from '../priceFeed';
 import { weiToSatoshi } from '../../utils';
-import { DepositTx } from '../../entities';
 import { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('mint_6_tdtToTbtc');

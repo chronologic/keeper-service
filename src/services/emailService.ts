@@ -1,11 +1,11 @@
 import mailjet from 'node-mailjet';
+import { Deposit, User } from 'keeper-db';
 
 import { ADMIN_EMAIL_RECIPIENTS, EMAIL_SENDER, MAILJET_API_KEY, MAILJET_API_SECRET } from '../env';
 import { bnToNumberBtc, bnToNumberEth, createTimedCache } from '../utils';
 import { HOUR_MILLIS, MINUTE_MILLIS } from '../constants';
 import { createLogger } from '../logger';
 import userHelper from './userHelper';
-import { Deposit, User } from '../entities';
 import { BigNumber } from 'ethers';
 
 const cache = createTimedCache<boolean>(60 * MINUTE_MILLIS);

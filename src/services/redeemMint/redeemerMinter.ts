@@ -1,9 +1,8 @@
 /* eslint-disable camelcase */
-import { getConnection } from 'typeorm';
 import PubSub from 'pubsub-js';
+import { getConnection, Deposit, DepositTx } from 'keeper-db';
 
 import { createLogger } from '../../logger';
-import { Deposit, DepositTx } from '../../entities';
 import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
 import depositHelper from '../depositHelper';
 import userAccountingHelper from '../userAccountingHelper';

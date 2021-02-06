@@ -1,6 +1,6 @@
-import { getConnection } from 'typeorm';
+import { getConnection, User } from 'keeper-db';
+
 import { MIN_USER_BALANCE_ETH } from '../env';
-import { User } from '../entities';
 import { numberToBnEth } from '../utils';
 
 async function getUsersForDeposit(depositId: number): Promise<User[]> {

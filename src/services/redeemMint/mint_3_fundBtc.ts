@@ -1,9 +1,9 @@
+import { Deposit, DepositTx } from 'keeper-db';
+
 import { depositContractAt, tbtcConstants, tbtcSystem } from '../../contracts';
-import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { btcClient } from '../../clients';
 import priceFeed from '../priceFeed';
-import { DepositTx } from '../../entities';
 import { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('mint_3_fundBtc');

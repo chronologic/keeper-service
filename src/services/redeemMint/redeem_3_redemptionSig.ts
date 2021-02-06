@@ -1,10 +1,9 @@
 import { BigNumber } from 'ethers';
+import { Deposit, DepositTx } from 'keeper-db';
 
 import { tbtcSystem, keepContractAt, depositContractAt } from '../../contracts';
-import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { ethClient } from '../../clients';
-import { DepositTx } from '../../entities';
 import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('redeem_3_redemptionSig');

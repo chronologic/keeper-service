@@ -1,8 +1,8 @@
+import { Deposit, DepositTx } from 'keeper-db';
+
 import { depositContractAt, vendingMachine } from '../../contracts';
-import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { ethClient } from '../../clients';
-import { DepositTx } from '../../entities';
 import { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('redeem_1_approveTbtc');

@@ -1,9 +1,9 @@
+import { Deposit, DepositTx } from 'keeper-db';
+
 import { keepContractAt, tbtcConstants, tbtcSystem } from '../../contracts';
-import { Deposit } from '../../entities/Deposit';
 import { createLogger } from '../../logger';
 import { btcClient, ethClient } from '../../clients';
 import priceFeed from '../priceFeed';
-import { DepositTx } from '../../entities';
 import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
 
 const logger = createLogger('redeem_4_btcRelease');

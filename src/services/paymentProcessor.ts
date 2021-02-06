@@ -1,12 +1,10 @@
 import { BigNumber, Event } from 'ethers';
-import { EntityManager, getConnection } from 'typeorm';
+import { getConnection, Payment, User, EntityManager } from 'keeper-db';
 
 import { SYNC_MIN_BLOCK } from '../env';
 import { createLogger } from '../logger';
 import { userPayment } from '../contracts';
 import { ethClient } from '../clients';
-import { Payment } from '../entities/Payment';
-import { User } from '../entities/User';
 import { MINUTE_MILLIS } from '../constants';
 import { bnToNumberEth } from '../utils';
 import emailService from './emailService';

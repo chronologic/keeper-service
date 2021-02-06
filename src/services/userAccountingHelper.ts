@@ -1,7 +1,6 @@
 import { BigNumber } from 'ethers';
-import { getConnection } from 'typeorm';
+import { getConnection, User, UserDepositTxPayment, Payment } from 'keeper-db';
 
-import { Payment, User, UserDepositTxPayment } from '../entities';
 import { WARNING_USER_BALANCE_ETH } from '../env';
 import { createLogger } from '../logger';
 import { bnToNumberEth, numberToBnEth } from '../utils';

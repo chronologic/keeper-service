@@ -1,5 +1,5 @@
-import { getConnection } from 'typeorm';
 import PubSub from 'pubsub-js';
+import { getConnection, Deposit, User } from 'keeper-db';
 
 import { MINUTE_MILLIS } from '../constants';
 import {
@@ -12,7 +12,6 @@ import {
 import { createLogger } from '../logger';
 import { depositContractAt } from '../contracts';
 import { bnToNumberBtc, bnToNumberEth, numberToBnBtc, numberToBnEth } from '../utils';
-import { Deposit, User } from '../entities';
 import priceFeed from './priceFeed';
 import depositHelper from './depositHelper';
 

@@ -1,7 +1,6 @@
 import { Event } from 'ethers';
-import { getConnection } from 'typeorm';
+import { getConnection, Deposit } from 'keeper-db';
 
-import { Deposit } from '../entities/Deposit';
 import { SYNC_MIN_BLOCK } from '../env';
 import { createLogger } from '../logger';
 import { bnToNumberBtc } from '../utils';

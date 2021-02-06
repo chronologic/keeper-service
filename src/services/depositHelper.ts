@@ -1,7 +1,5 @@
-import { getConnection } from 'typeorm';
+import { getConnection, Deposit, Operator } from 'keeper-db';
 
-import { Deposit } from '../entities/Deposit';
-import { Operator } from '../entities/Operator';
 import { createLogger } from '../logger';
 import { depositContractAt, keepContractAt } from '../contracts';
 
