@@ -5,10 +5,10 @@
   "main": "dist/index.js",
   "scripts": {
     "eslint": "eslint src/server.ts",
-    "build": "tsc",
+    "build": "tsc -p ./tsconfig.prod.json",
     "lint": "./node_modules/eslint/bin/eslint.js  src --ext .ts",
     "dev": "ts-node ./src/server.ts",
-    "start": "node dist/src/server.js",
+    "start": "node dist/server.js",
     "test": "jest",
     "fix-lint": "./node_modules/eslint/bin/eslint.js  src --ext .ts --fix"
   },
