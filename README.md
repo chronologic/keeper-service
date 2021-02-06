@@ -15,6 +15,7 @@ The project consists of the following repositories:
 - https://github.com/chronologic/keeper-service (this repository)
 - https://github.com/chronologic/keeper-api
 - https://github.com/chronologic/keeper-ui
+- https://github.com/chronologic/keeper-db
 - https://github.com/chronologic/keeper-payment-contract
 
 ## Repository overview
