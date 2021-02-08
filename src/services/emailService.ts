@@ -232,6 +232,26 @@ async function adminAccountBalanceLow(address: string, formattedBalance: number,
   });
 }
 
+async function adminAccountBalanceCritical(address: string, formattedBalance: number, currency: string): Promise<void> {
+  const cacheKey = `ADMIN:ACCOUNT_BALANCE_CRITICAL:${currency}`;
+  const cacheTtl = 1 * HOUR_MILLIS;
+
+  const getEmailParams: EmailParamsGetter = async () => {
+    const subject = `😱😱😱💸 Account balance CRITICAL - ${formattedBalance} ${currency} at ${address}`;
+    const recipients = ADMIN_EMAIL_RECIPIENTS;
+    const body = `System account ${address} ${currency} balance is below minimum and is currently ${formattedBalance} ${currency}.
+System is not able to operate! 😱😱😱`;
+
+    return { recipients, subject, body };
+  };
+
+  await send({
+    getEmailParams,
+    cacheKey,
+    cacheTtl,
+  });
+}
+
 async function adminSystemBalanceAnomaly(
   address: string,
   formattedPrevBalance: number,
@@ -341,6 +361,7 @@ export default {
     redemptionComplete: adminRedemptionComplete,
     redemptionError: adminRedemptionError,
     accountBalanceLow: adminAccountBalanceLow,
+    accountBalanceCritical: adminAccountBalanceCritical,
     genericError: adminGenericError,
     systemBalanceAnomaly: adminSystemBalanceAnomaly,
   },

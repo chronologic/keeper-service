@@ -2,7 +2,14 @@ import { BigNumber } from 'ethers';
 
 import { btcClient, ethClient } from '../clients';
 import { tbtcToken } from '../contracts';
-import { MIN_SYSTEM_BTC_BALANCE, MIN_SYSTEM_ETH_BALANCE, MIN_SYSTEM_TBTC_BALANCE } from '../env';
+import {
+  MIN_SYSTEM_BTC_BALANCE,
+  MIN_SYSTEM_ETH_BALANCE,
+  MIN_SYSTEM_TBTC_BALANCE,
+  WARNING_SYSTEM_BTC_BALANCE,
+  WARNING_SYSTEM_ETH_BALANCE,
+  WARNING_SYSTEM_TBTC_BALANCE,
+} from '../env';
 import { createLogger } from '../logger';
 import { bnToNumberBtc, bnToNumberEth, numberToBnBtc, numberToBnEth } from '../utils';
 import emailService from './emailService';
@@ -75,25 +82,43 @@ async function checkSystemBalances(): Promise<boolean> {
   let ok = true;
 
   const minTbtcBalance = numberToBnEth(MIN_SYSTEM_TBTC_BALANCE);
+  const warningTbtcBalance = numberToBnEth(WARNING_SYSTEM_TBTC_BALANCE);
   logger.debug(`TBTC balances. Min: ${bnToNumberEth(minTbtcBalance)}, current: ${bnToNumberEth(tbtcBalance)}`);
   if (tbtcBalance.lt(minTbtcBalance)) {
-    logger.error(`TBTC balance too low! Min: ${bnToNumberEth(minTbtcBalance)}, current: ${bnToNumberEth(tbtcBalance)}`);
-    emailService.admin.accountBalanceLow(ethClient.defaultWallet.address, bnToNumberEth(tbtcBalance), 'TBTC');
+    logger.error(
+      `TBTC balance critical! Min: ${bnToNumberEth(minTbtcBalance)}, current: ${bnToNumberEth(tbtcBalance)}`
+    );
+    emailService.admin.accountBalanceCritical(ethClient.defaultWallet.address, bnToNumberEth(tbtcBalance), 'TBTC');
     ok = false;
+  } else if (tbtcBalance.lt(warningTbtcBalance)) {
+    logger.warn(
+      `TBTC balance running low! Min: ${bnToNumberEth(minTbtcBalance)}, current: ${bnToNumberEth(tbtcBalance)}`
+    );
+    emailService.admin.accountBalanceLow(ethClient.defaultWallet.address, bnToNumberEth(tbtcBalance), 'TBTC');
   }
+
   const minEthBalance = numberToBnEth(MIN_SYSTEM_ETH_BALANCE);
+  const warningEthBalance = numberToBnEth(WARNING_SYSTEM_ETH_BALANCE);
   logger.debug(`ETH balances. Min: ${bnToNumberEth(minEthBalance)}, current: ${bnToNumberEth(ethBalance)}`);
   if (ethBalance.lt(minEthBalance)) {
-    logger.error(`ETH balance too low! Min: ${bnToNumberEth(minEthBalance)}, current: ${bnToNumberEth(ethBalance)}`);
-    emailService.admin.accountBalanceLow(ethClient.defaultWallet.address, bnToNumberEth(ethBalance), 'ETH');
+    logger.error(`ETH balance critical! Min: ${bnToNumberEth(minEthBalance)}, current: ${bnToNumberEth(ethBalance)}`);
+    emailService.admin.accountBalanceCritical(ethClient.defaultWallet.address, bnToNumberEth(ethBalance), 'ETH');
     ok = false;
+  } else if (ethBalance.lt(warningEthBalance)) {
+    logger.warn(`ETH balance running low! Min: ${bnToNumberEth(minEthBalance)}, current: ${bnToNumberEth(ethBalance)}`);
+    emailService.admin.accountBalanceLow(ethClient.defaultWallet.address, bnToNumberEth(ethBalance), 'ETH');
   }
+
   const minBtcBalance = numberToBnBtc(MIN_SYSTEM_BTC_BALANCE).toNumber();
+  const warningBtcBalance = numberToBnBtc(WARNING_SYSTEM_BTC_BALANCE).toNumber();
   logger.debug(`BTC balances. Min: ${bnToNumberBtc(minBtcBalance)}, current: ${bnToNumberBtc(btcBalance)}`);
   if (btcBalance < minBtcBalance) {
-    logger.error(`BTC balance too low! Min: ${bnToNumberBtc(minBtcBalance)}, current: ${bnToNumberBtc(btcBalance)}`);
-    emailService.admin.accountBalanceLow(btcClient.zpub, bnToNumberBtc(btcBalance), 'BTC');
+    logger.error(`BTC balance critical! Min: ${bnToNumberBtc(minBtcBalance)}, current: ${bnToNumberBtc(btcBalance)}`);
+    emailService.admin.accountBalanceCritical(btcClient.zpub, bnToNumberBtc(btcBalance), 'BTC');
     ok = false;
+  } else if (btcBalance < warningBtcBalance) {
+    logger.warn(`BTC balance running low! Min: ${bnToNumberBtc(minBtcBalance)}, current: ${bnToNumberBtc(btcBalance)}`);
+    emailService.admin.accountBalanceLow(btcClient.zpub, bnToNumberBtc(btcBalance), 'BTC');
   }
 
   logger.info('System balances check finished.');
