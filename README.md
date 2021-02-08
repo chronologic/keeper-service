@@ -148,15 +148,25 @@ An `.env` file should be created based on the `.env.example` template file. The 
 | `WARNING_SYSTEM_ETH_BALANCE`        | `number` | `0`        | If system ETH balance falls below this level, system will start sending email notifications to admins.                                       |
 | `MIN_SYSTEM_ETH_BALANCE`            | `number` | `0`        | if system ETH balance falls below this level, system will halt.                                                                              |
 
-#### DEVELOPMENT
+### Deployment
 
-#### DEPLOYMENT (+ MONITORING)
+You may deploy this service to e.g. https://www.heroku.com/
 
-#### Liquidation Prevention Process
+### Monitoring the service (availability)
 
-#### FUND WITHDRAWALS (FOR USERS)
+Monitoring is outside of the scope of this project. A monitoring solution may be added as needed, e.g. `pm2`, `prometheus` + `grafana` etc.
 
-#### EXCEPTION SCENARIO (out of TBTC)
+### Building
+
+Run `npm run build`.
+
+### Development
+
+Run `npm run dev`.
+
+### How do users withdraw their ETH?
+
+Currently, there is no automatic way for users to withdraw their ETH if e.g. they want to stop using the service. Instead, the user should contact the service admins and they should return the funds manually (remembering to remove the user from the the database).
 
 ### Additional Links
 
