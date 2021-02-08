@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const LOG_LEVEL = process.env.LOG_LEVEL as string;
+export const LOG_LEVEL = (process.env.LOG_LEVEL as string) || 'info';
 
 export const ETH_NETWORK = process.env.ETH_NETWORK as string;
 export const INFURA_API_KEY = process.env.INFURA_API_KEY as string;
@@ -19,8 +19,8 @@ export const MAILJET_API_SECRET = process.env.MAILJET_API_SECRET as string;
 export const ADMIN_EMAIL_RECIPIENTS = (process.env.ADMIN_EMAIL_RECIPIENTS as string).split(',');
 export const EMAIL_SENDER = process.env.EMAIL_SENDER as string;
 
-export const MIN_USER_BALANCE_ETH = Number(process.env.MIN_USER_BALANCE_ETH || 0);
-export const WARNING_USER_BALANCE_ETH = Number(process.env.WARNING_USER_BALANCE_ETH || 0);
+export const MIN_USER_BALANCE_ETH = Number(process.env.MIN_USER_BALANCE_ETH || 0.5);
+export const WARNING_USER_BALANCE_ETH = Number(process.env.WARNING_USER_BALANCE_ETH || 0.75);
 export const USER_TX_FEE_PERCENT = Number(process.env.USER_TX_FEE_PERCENT || 0);
 
 export const SYNC_MIN_BLOCK = Number(process.env.SYNC_MIN_BLOCK || 10880657);
