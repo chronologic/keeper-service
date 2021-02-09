@@ -166,7 +166,7 @@ Run `npm run dev`.
 
 ### How do users withdraw their ETH?
 
-Currently, there is no automatic way for users to withdraw their ETH if e.g. they want to stop using the service. Instead, the user should contact the service admins and they should return the funds manually (remembering to remove the user from the the database).
+Currently, there is no automatic way for users to withdraw their ETH if e.g. they want to stop using the service. Instead, the user should contact the service admins and they should return the funds manually (remembering to remove the user from the database).
 
 ### Additional Links
 
