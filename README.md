@@ -115,7 +115,9 @@ Every few minutes, the payment smart contract is scanned for new payments. All n
 
 This repo uses [`dotenv`](https://www.npmjs.com/package/dotenv) to load environment variables.
 
-An `.env` file should be created based on the `.env.example` template file. The `.env` file should never be commited.
+For development, and `.env` file should be created based on the `.env.example` template file. The `.env` file should never be commited.
+
+In production, environment variables can be injected directly.
 
 | Name                                | Type     | Default    | Description                                                                                                                                  |
 | ----------------------------------- | -------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
