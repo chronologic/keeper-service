@@ -1,3 +1,5 @@
+![Keeper Diagram](assets/keeper-diagram.jpg)
+
 # Keeper
 
 This is the main repository for the Keeper project.
@@ -8,10 +10,6 @@ Keeper is a service for [Keep Network](https://keep.network/) Node Operators to 
 
 You can read more about this project at our [blog](https://blog.chronologic.network/) and https://blog.chronologic.network/draft-chronologic-is-awarded-grant-from-keep-network-7c3d0e36a4be
 
-## Diagram
-
-![Keeper Diagram](assets/keeper-diagram.jpg)
-
 ## Project overview
 
 The project consists of the following repositories:
@@ -21,6 +19,14 @@ The project consists of the following repositories:
 - https://github.com/chronologic/keeper-ui
 - https://github.com/chronologic/keeper-db
 - https://github.com/chronologic/keeper-payment-contract
+
+This is how those repositories are interconnected:
+
+![Repository Dependencies](assets/repository-dependencies.png)
+
+And this is how they interact:
+
+![Component Interactions](assets/component-interactions.png)
 
 ## Repository overview
 
