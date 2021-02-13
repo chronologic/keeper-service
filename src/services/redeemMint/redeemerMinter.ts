@@ -79,7 +79,8 @@ async function getDepositToProcess(): Promise<Deposit> {
   const connection = getConnection();
   const deposits = await connection.createEntityManager().find(Deposit, {
     where: { systemStatus: [Deposit.SystemStatus.QUEUED_FOR_REDEMPTION, Deposit.SystemStatus.REDEEMING] },
-    // ordering by status DESC ensures deposits in REDEEMING status will be processed first (i.e. interrupted process will be picked up)
+    // ordering by systemStatus DESC ensures deposits in REDEEMING status will be processed first
+    // i.e. interrupted process will be picked up before processing new deposit
     order: { systemStatus: 'DESC', createDate: 'ASC' },
   });
 

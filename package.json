@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Monitoring and redeeming service for Keeper",
   "main": "dist/index.js",
+  "engines": {
+    "node": "14.x"
+  },
   "scripts": {
     "eslint": "eslint src/server.ts",
     "build": "tsc -p ./tsconfig.prod.json",
