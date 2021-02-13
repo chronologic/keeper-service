@@ -186,19 +186,27 @@ async function tryConfirmFn(
   txHash: string,
   operationType: DepositTx['Type']
 ): Promise<IDepositTxParams> {
+  let confirmedError = false;
   try {
     const res = await confirmFn(deposit, txHash);
 
     await depositTxHelper.storeAndAddUserPayments(deposit, res);
+    confirmedError = res.status === DepositTx.Status.ERROR;
+
+    if (confirmedError) {
+      throw new Error(`Tx ${txHash} for deposit ${deposit.depositAddress} is failed to complete on the blockchain`);
+    }
 
     return res;
   } catch (e) {
     logger.error(e);
-    await depositTxHelper.storeAndAddUserPayments(deposit, {
-      status: DepositTx.Status.ERROR,
-      txHash,
-      operationType,
-    });
+    if (!confirmedError) {
+      await depositTxHelper.storeAndAddUserPayments(deposit, {
+        status: DepositTx.Status.ERROR,
+        txHash,
+        operationType,
+      });
+    }
     throw e;
   }
 }
