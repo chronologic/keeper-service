@@ -8,6 +8,8 @@ import depositHelper from '../depositHelper';
 import userAccountingHelper from '../userAccountingHelper';
 import emailService from '../emailService';
 import systemAccountingHelper from '../systemAccountingHelper';
+import { MINUTE_MILLIS } from '../../constants';
+import { DEPOSITS_CHECKED_TOPIC } from '../depositMonitor';
 import redeem_1_approveTbtc from './redeem_1_approveTbtc';
 import redeem_2_requestRedemption from './redeem_2_requestRedemption';
 import redeem_3_redemptionSig from './redeem_3_redemptionSig';
@@ -19,8 +21,6 @@ import mint_3_fundBtc from './mint_3_fundBtc';
 import mint_4_fundingProof from './mint_4_fundingProof';
 import mint_5_approveTdt from './mint_5_approveTdt';
 import mint_6_tdtToTbtc from './mint_6_tdtToTbtc';
-import { MINUTE_MILLIS } from '../../constants';
-import { DEPOSITS_CHECKED_TOPIC } from '../depositMonitor';
 
 type ConfirmFn = (deposit: Deposit, txHash: string) => Promise<IDepositTxParams>;
 type ExecuteFn = (deposit: Deposit) => Promise<IDepositTxParams>;
@@ -36,6 +36,7 @@ let busy = false;
 
 async function init() {
   PubSub.subscribe(DEPOSITS_CHECKED_TOPIC, checkForDepositToProcess);
+  checkForDepositToProcess();
   logger.info('Listening for deposits to process...');
 }
 
@@ -43,14 +44,14 @@ async function checkForDepositToProcess(): Promise<void> {
   if (busy) {
     logger.info('Process is busy');
   } else {
-    logger.info('Checking for deposit to process...');
     busy = true;
+    logger.info('Checking for deposit to process...');
     const deposit = await getDepositToProcess();
 
     if (deposit) {
-      logger.info(`Found deposit ${deposit.depositAddress} to process. Making sure system balances are sufficient...`);
-      logger.debug(deposit);
-      await ensureSufficientSystemBalances();
+      // logger.info(`Found deposit ${deposit.depositAddress} to process. Making sure system balances are sufficient...`);
+      // logger.debug(deposit);
+      // await ensureSufficientSystemBalances();
       logger.info(`Processing deposit ${deposit.depositAddress}...`);
       await processDeposit(deposit);
       logger.info(`Deposit ${deposit.depositAddress} processed`);
@@ -78,7 +79,10 @@ async function ensureSufficientSystemBalances(): Promise<void> {
 async function getDepositToProcess(): Promise<Deposit> {
   const connection = getConnection();
   const deposits = await connection.createEntityManager().find(Deposit, {
-    where: { systemStatus: [Deposit.SystemStatus.QUEUED_FOR_REDEMPTION, Deposit.SystemStatus.REDEEMING] },
+    where: [
+      { systemStatus: Deposit.SystemStatus.QUEUED_FOR_REDEMPTION },
+      { systemStatus: Deposit.SystemStatus.REDEEMING },
+    ],
     // ordering by systemStatus DESC ensures deposits in REDEEMING status will be processed first
     // i.e. interrupted process will be picked up before processing new deposit
     order: { systemStatus: 'DESC', createDate: 'ASC' },
@@ -87,7 +91,7 @@ async function getDepositToProcess(): Promise<Deposit> {
   // TODO: order by collateralization % ?
   // TODO: double check collateralization %
 
-  logger.info(`Found ${deposits.length} deposits to process`);
+  logger.info(`Found ${deposits.length} deposit(s) to process`);
 
   return deposits[0];
 }

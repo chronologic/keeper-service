@@ -51,13 +51,13 @@ async function getTxsOfTypeAndStatus(
 
 async function getTxsForDeposit(depositId: number): Promise<DepositTx[]> {
   const txs = await getConnection()
-    .createQueryBuilder()
-    .select('*')
-    .from(DepositTx, 'dtx')
+    .getRepository(DepositTx)
+    .createQueryBuilder('dtx')
     .where({ depositId })
     // sorting ensures first found item is the latest
-    .orderBy({ createdDate: 'DESC' })
-    .execute();
+    // eslint-disable-next-line no-useless-computed-key
+    .orderBy({ ['"createDate"']: 'DESC' })
+    .getMany();
 
   return txs;
 }

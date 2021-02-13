@@ -1,5 +1,5 @@
 import { BigNumber, Event } from 'ethers';
-import { getConnection, Payment, User, EntityManager } from 'keeper-db';
+import { getConnection, Payment, User, typeorm } from 'keeper-db';
 
 import { SYNC_MIN_BLOCK } from '../env';
 import { createLogger } from '../logger';
@@ -133,7 +133,7 @@ async function maybeStoreTransfer({
   });
 }
 
-async function getOrCreateUser(manager: EntityManager, address: string): Promise<User> {
+async function getOrCreateUser(manager: typeorm.EntityManager, address: string): Promise<User> {
   let user = await manager.findOne(User, { address });
 
   if (!user) {
@@ -143,14 +143,14 @@ async function getOrCreateUser(manager: EntityManager, address: string): Promise
   return user;
 }
 
-async function paymentTxExists(manager: EntityManager, txHash: string): Promise<boolean> {
+async function paymentTxExists(manager: typeorm.EntityManager, txHash: string): Promise<boolean> {
   const payment = await manager.findOne(Payment, { txHash });
 
   return !!payment;
 }
 
 async function storePayment(
-  manager: EntityManager,
+  manager: typeorm.EntityManager,
   {
     txHash,
     user,
@@ -171,7 +171,7 @@ async function storePayment(
   return payment;
 }
 
-async function addEthToUserBalance(manager: EntityManager, user: User, amount: BigNumber): Promise<BigNumber> {
+async function addEthToUserBalance(manager: typeorm.EntityManager, user: User, amount: BigNumber): Promise<BigNumber> {
   const newBalance = user.balanceEth.add(amount);
   await manager.update(User, { id: user.id }, { balanceEth: newBalance });
 

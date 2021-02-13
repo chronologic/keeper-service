@@ -121,11 +121,9 @@ async function markDepositForRedemption(deposit: Deposit): Promise<void> {
 }
 
 async function getDepositsToCheck(): Promise<Deposit[]> {
-  const connection = getConnection();
-  const q = connection
-    .createQueryBuilder()
-    .select('*')
-    .from(Deposit, 'd')
+  const q = getConnection()
+    .getRepository(Deposit)
+    .createQueryBuilder('d')
     .where('d."status" in (:...redeemableStatusCodes)', { redeemableStatusCodes })
     .andWhere('d."systemStatus" is null')
     .andWhere('d."bondedEth" > 0')

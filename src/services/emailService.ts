@@ -315,6 +315,7 @@ async function send({
     return;
   }
 
+  logger.debug(`Getting email params for email ${cacheKey}...`);
   const { recipients, subject, body } = await getEmailParams();
 
   if (recipients.length === 0) {
