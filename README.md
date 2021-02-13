@@ -180,7 +180,7 @@ Run `npm run dev`.
 
 ### Disclaimer
 
-The Keeper Service does not guarantee that a deposit will be redeemed before liquidation. The redemption process may fail due to a number of reasons, including but not limited to: network congestion, market conditions, Node Operator availability.
+The Keeper Service does not guarantee that a deposit will be redeemed before liquidation. The redemption process may fail due to a number of reasons, including but not limited to: network congestion, market conditions, Operator Node availability.
 
 The Keeper Service maintainers may not be held liable for any damages or loss of funds that arise from using the Service.
 
