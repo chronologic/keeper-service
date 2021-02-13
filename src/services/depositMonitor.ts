@@ -140,7 +140,7 @@ async function getDepositsToCheck(): Promise<Deposit[]> {
     .where('d2.id = d.id')
     .andWhere('u."balanceEth" >= :minBalance', { minBalance: numberToBnEth(MIN_USER_BALANCE_ETH).toString() });
 
-  const deposits = await q.andWhere(`exists ${subq.getQuery()}`).execute();
+  const deposits = await q.andWhere(`exists ${subq.getQuery()}`).getMany();
 
   logger.debug(`found ${deposits.length} deposits to check`);
 
