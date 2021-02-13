@@ -57,7 +57,7 @@ export async function getRedemptionDetailsFromEvent(
   };
 }
 
-export async function getOrWaitForRegisteredPubkeyEvent(depositAddress: string, fromBlock: number) {
+export async function getOrWaitForRegisteredPubkeyEvent(depositAddress: string, fromBlock = 0) {
   const event = await getRawRegisteredPubkeyEvent(depositAddress, fromBlock);
 
   if (event) {
@@ -69,11 +69,11 @@ export async function getOrWaitForRegisteredPubkeyEvent(depositAddress: string, 
     });
   });
 }
-async function getRegisteredPubkeyEvent(depositAddress: string, fromBlock: number) {
+async function getRegisteredPubkeyEvent(depositAddress: string, fromBlock = 0) {
   const event = await getRawRegisteredPubkeyEvent(depositAddress, fromBlock);
   return parseRegisteredPubkeyEvent(event);
 }
-async function getRawRegisteredPubkeyEvent(depositAddress: string, fromBlock: number): Promise<ethers.Event> {
+async function getRawRegisteredPubkeyEvent(depositAddress: string, fromBlock = 0): Promise<ethers.Event> {
   const [event] = await contract.queryFilter(contract.filters.RegisteredPubkey(depositAddress), fromBlock);
   return event;
 }

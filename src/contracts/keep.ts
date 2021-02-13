@@ -61,6 +61,7 @@ export default function getContractAt(address: string): IKeepContract {
   async function getOrWaitForSignatureSubmittedEvent(expectedDigest: string, fromBlock: number) {
     const event = await getRawSignatureSubmittedEvent(expectedDigest, fromBlock);
 
+    // TODO: add timeout so the process does not hang forever
     if (event) {
       return parseSignatureSubmittedEvent(event);
     }

@@ -21,6 +21,7 @@ import mint_3_fundBtc from './mint_3_fundBtc';
 import mint_4_fundingProof from './mint_4_fundingProof';
 import mint_5_approveTdt from './mint_5_approveTdt';
 import mint_6_tdtToTbtc from './mint_6_tdtToTbtc';
+import { depositContractAt } from '../../contracts';
 
 type ConfirmFn = (deposit: Deposit, txHash: string) => Promise<IDepositTxParams>;
 type ExecuteFn = (deposit: Deposit) => Promise<IDepositTxParams>;
@@ -49,9 +50,9 @@ async function checkForDepositToProcess(): Promise<void> {
     const deposit = await getDepositToProcess();
 
     if (deposit) {
-      // logger.info(`Found deposit ${deposit.depositAddress} to process. Making sure system balances are sufficient...`);
-      // logger.debug(deposit);
-      // await ensureSufficientSystemBalances();
+      logger.info(`Found deposit ${deposit.depositAddress} to process. Making sure system balances are sufficient...`);
+      logger.debug(deposit);
+      await ensureSufficientSystemBalances();
       logger.info(`Processing deposit ${deposit.depositAddress}...`);
       await processDeposit(deposit);
       logger.info(`Deposit ${deposit.depositAddress} processed`);
@@ -123,6 +124,9 @@ async function processDeposit(deposit: Deposit): Promise<void> {
 
     for (const step of steps) {
       const updatedDeposit = await depositHelper.getByAddress(deposit.depositAddress);
+      const statusCode = await depositContractAt(deposit.depositAddress).getStatusCode();
+      logger.info(`Current status of deposit ${deposit.depositAddress} is ${Deposit.Status[statusCode]}`);
+
       await executeStep({
         deposit: updatedDeposit,
         operationType: step.operationType,
@@ -131,6 +135,7 @@ async function processDeposit(deposit: Deposit): Promise<void> {
       });
     }
 
+    await depositHelper.updateSystemStatus(deposit.depositAddress, Deposit.SystemStatus.REDEEMED);
     emailService.redemptionComplete(deposit);
     emailService.admin.redemptionComplete(deposit);
   } catch (e) {
@@ -158,8 +163,9 @@ async function executeStep({
 }): Promise<void> {
   logger.info(`Initiating ${operationType} for deposit ${deposit.depositAddress}...`);
 
-  if (depositTxHelper.hasConfirmedTxOfType(deposit.id, operationType)) {
+  if (await depositTxHelper.hasConfirmedTxOfType(deposit.id, operationType)) {
     logger.info(`${operationType} is ${DepositTx.Status.CONFIRMED} for deposit ${deposit.depositAddress}.`);
+    return;
   }
 
   const broadcastedTx = await depositTxHelper.getBroadcastedTxOfType(deposit.id, operationType);

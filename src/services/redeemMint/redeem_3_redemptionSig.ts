@@ -38,7 +38,7 @@ async function execute(deposit: Deposit): Promise<IDepositTxParams> {
     deposit.blockNumber
   );
 
-  logger.info(`Waiting for signature submitted from for deposit ${deposit.depositAddress}...`);
+  logger.info(`Waiting for signature submitted for deposit ${deposit.depositAddress}...`);
   const { r, s, recoveryID } = await keepContractAt(deposit.keepAddress).getOrWaitForSignatureSubmittedEvent(
     digest,
     deposit.blockNumber

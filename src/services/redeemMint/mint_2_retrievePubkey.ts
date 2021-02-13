@@ -26,14 +26,13 @@ async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxPara
 
 async function execute(deposit: Deposit): Promise<IDepositTxParams> {
   const keepContract = keepContractAt(deposit.mintedDeposit.keepAddress);
-  logger.info(`Waiting for PublicKeyPublished event for deposit ${deposit.mintedDeposit.depositAddress}...`);
+  logger.debug(`Waiting for PublicKeyPublished event for deposit ${deposit.mintedDeposit.depositAddress}...`);
   await keepContract.getOrWaitForPublicKeyPublishedEvent(deposit.mintedDeposit.blockNumber);
 
   const depositContract = depositContractAt(deposit.mintedDeposit.depositAddress);
-  logger.info(`Retrieving signer pubkey for deposit ${deposit.mintedDeposit.depositAddress}...`);
+  logger.debug(`Retrieving signer pubkey for deposit ${deposit.mintedDeposit.depositAddress}...`);
   const tx = await depositContract.retrieveSignerPubkey();
-
-  logger.debug(`Retrieve signer pubkey tx:\n${JSON.stringify(tx, null, 2)}`);
+  logger.debug(`Retrieved signer pubkey tx for deposit ${deposit.mintedDeposit.depositAddress}`, tx);
 
   const txHash = tx.hash;
 

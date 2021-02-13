@@ -172,6 +172,12 @@ Run `npm run build`.
 
 Run `npm run dev`.
 
+### Disclaimer
+
+The Keeper Service does not guarantee that a deposit will be redeemed before liquidation. The redemption process may fail due to a number of reasons, including but not limited to: network congestion, market conditions, Node Operator availability.
+
+The Keeper Service maintainers may not be held liable for any damages or loss of funds that arise from using the Service.
+
 ### How do users withdraw their ETH?
 
 Currently, there is no automatic way for users to withdraw their ETH if e.g. they want to stop using the service. Instead, the user should contact the service admins and they should return the funds manually.

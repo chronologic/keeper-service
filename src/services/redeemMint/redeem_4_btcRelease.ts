@@ -32,12 +32,20 @@ async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxPara
 async function execute(deposit: Deposit): Promise<IDepositTxParams> {
   logger.info(`Releasing BTC for deposit ${deposit.depositAddress}...`);
 
+  // TODO: add debug logs for each step
+  logger.debug(`Fetching redemption tx for deposit ${deposit.depositAddress}...`);
   const redemptionTx = await depositTxHelper.getConfirmedTxOfType(deposit.id, DepositTx.Type.REDEEM_REDEMPTION_REQUEST);
+  logger.debug(`Fetched redemption tx for deposit ${deposit.depositAddress}.`, redemptionTx);
 
+  logger.debug(`Fetching redemption details for deposit ${deposit.depositAddress} tx ${redemptionTx.txHash}...`);
   const redemptionDetails = await tbtcSystem.getRedemptionDetailsFromEvent(
     redemptionTx.txHash,
     deposit.depositAddress,
     deposit.blockNumber
+  );
+  logger.debug(
+    `Fetched redemption details for deposit ${deposit.depositAddress} tx ${redemptionTx.txHash}.`,
+    redemptionDetails
   );
 
   const outputValue = redemptionDetails.utxoValue.sub(redemptionDetails.requestedFee);
@@ -51,12 +59,16 @@ async function execute(deposit: Deposit): Promise<IDepositTxParams> {
     ethClient.bytesToRaw(redemptionDetails.redeemerOutputScript)
   );
 
+  logger.debug(`Fetching signature submitted event for deposit ${deposit.depositAddress}...`);
   const { r, s } = await keepContractAt(deposit.keepAddress).getOrWaitForSignatureSubmittedEvent(
     redemptionDetails.digest,
     deposit.blockNumber
   );
+  logger.debug(`Fetched signature submitted event for deposit ${deposit.depositAddress}.`, { r, s });
 
-  const pubKeyPoint = await tbtcSystem.getOrWaitForRegisteredPubkeyEvent(deposit.depositAddress, deposit.blockNumber);
+  logger.debug(`Fetching registered pubkey event for deposit ${deposit.depositAddress}...`);
+  const pubKeyPoint = await tbtcSystem.getOrWaitForRegisteredPubkeyEvent(deposit.depositAddress);
+  logger.debug(`Fetched registered pubkey event for deposit ${deposit.depositAddress}.`, pubKeyPoint);
 
   const signedTransaction = btcClient.addWitnessSignature(
     unsignedTransaction,
@@ -66,7 +78,9 @@ async function execute(deposit: Deposit): Promise<IDepositTxParams> {
     btcClient.publicKeyPointToPublicKeyString(pubKeyPoint.x, pubKeyPoint.y)
   );
 
+  logger.debug(`Broadcasting btc release tx for deposit ${deposit.depositAddress}...`);
   const txHash = await btcClient.broadcastTx(signedTransaction);
+  logger.debug(`Broadcasted btc release tx for deposit ${deposit.depositAddress}.`, txHash);
 
   return {
     operationType,

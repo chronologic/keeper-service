@@ -52,9 +52,9 @@ async function execute(deposit: Deposit): Promise<IDepositTxParams> {
     )}`
   );
 
+  logger.debug(`Requesting redemption for deposit ${deposit.depositAddress}...`);
   const tx = await vendingMachine.tbtcToBtc(deposit.depositAddress, outputValueBytes, redeemerOutputScript);
-
-  logger.debug(`Request redemption tx:\n${JSON.stringify(tx, null, 2)}`);
+  logger.debug(`Requested redemption tx for deposit ${deposit.depositAddress}.`, tx);
 
   await storeRedemptionAddress(deposit, redemptionAddress, redemptionAddressIndex);
 

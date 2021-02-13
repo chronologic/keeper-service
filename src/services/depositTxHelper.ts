@@ -46,10 +46,11 @@ async function getTxsOfTypeAndStatus(
   status: DepositTx['Status']
 ): Promise<DepositTx[]> {
   const txs = await getTxsForDeposit(depositId);
-  return txs.filter((l) => l.operationType === operationType && l.status === status);
+  return txs.filter((tx) => tx.operationType === operationType && tx.status === status);
 }
 
 async function getTxsForDeposit(depositId: number): Promise<DepositTx[]> {
+  logger.debug(`Fetching txs for deposit ${depositId}...`);
   const txs = await getConnection()
     .getRepository(DepositTx)
     .createQueryBuilder('dtx')
@@ -58,6 +59,8 @@ async function getTxsForDeposit(depositId: number): Promise<DepositTx[]> {
     // eslint-disable-next-line no-useless-computed-key
     .orderBy({ ['"createDate"']: 'DESC' })
     .getMany();
+
+  logger.debug(`Fetched txs for deposit ${depositId}.`, txs);
 
   return txs;
 }
@@ -146,19 +149,24 @@ async function addUserTxPaymentRecords(depositTx: DepositTx): Promise<void> {
 
 async function updateDepositRedemptionCost(depositId: number): Promise<void> {
   const conn = getConnection();
-  const costs = await conn
+  logger.debug(`Fetching sum of tx costs for deposit ${depositId}...`);
+  const [costs] = await conn
     .createQueryBuilder()
     .select(
       `SUM("txCostEthEquivalent") as "redemptionCostEthEquivalent",
-       SUM("txCostEthEquivalentWithFee") as "redemptionCostEthEquivalentWithFree",
+       SUM("txCostEthEquivalentWithFee") as "redemptionCostEthEquivalentWithFee",
        SUM("txCostUsdEquivalent") as "redemptionCostUsdEquivalent",
        SUM("txCostUsdEquivalentWithFee") as "redemptionCostUsdEquivalentWithFee"`
     )
     .from(DepositTx, 'dtx')
-    .where('"depositId" = :depositId', { depositId })
+    .where('dtx."depositId" = :depositId', { depositId })
     .execute();
 
-  await getConnection().createEntityManager().update(Deposit, { depositId }, costs);
+  logger.debug(`Fetched sum of tx costs for deposit ${depositId}.`, costs);
+
+  logger.debug(`Updating redemption costs for deposit ${depositId}...`);
+  await conn.createEntityManager().update(Deposit, { id: depositId }, costs);
+  logger.debug(`Updated redemption costs for deposit ${depositId}.`);
 }
 
 export default {
