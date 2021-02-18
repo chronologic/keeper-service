@@ -27,6 +27,7 @@
     "cross-env": "^7.0.3",
     "dotenv": "8.2.0",
     "electrum-client-js": "git+https://github.com/keep-network/electrum-client-js.git#v0.1.0",
+    "eth-revert-reason": "^1.0.3",
     "ethers": "^5.0.25",
     "keeper-db": "github:chronologic/keeper-db#v1.0.0",
     "keeper-payment-contract": "github:chronologic/keeper-payment-contract#v1.0.0-rc.1",

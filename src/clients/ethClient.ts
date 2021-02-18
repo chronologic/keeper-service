@@ -1,4 +1,5 @@
 import { BigNumber, ethers } from 'ethers';
+import getRevertReason from 'eth-revert-reason';
 
 import { ETH_NETWORK, ETH_XPRV, INFURA_API_KEY } from '../env';
 import { ETH_MIN_CONFIRMATIONS, SECOND_MILLIS } from '../constants';
@@ -23,18 +24,41 @@ export function getPrivKeyAtIndex(index: number): string {
 
 export async function confirmTransaction(
   txHash: string
-): Promise<{ receipt: ethers.providers.TransactionReceipt; success: boolean }> {
+): Promise<{ receipt: ethers.providers.TransactionReceipt; success: boolean; revertReason?: string }> {
   const receipt = await httpProvider.waitForTransaction(txHash, ETH_MIN_CONFIRMATIONS);
-  const success = isTransactionSuccessful(receipt);
+  const { success, revertReason } = await isTransactionSuccessful(receipt);
 
   return {
     receipt,
     success,
+    revertReason,
   };
 }
 
-export function isTransactionSuccessful(txReceipt: ethers.providers.TransactionReceipt): boolean {
-  return txReceipt.status !== TX_STATUS_FAILED;
+async function isTransactionSuccessful(
+  txReceipt: ethers.providers.TransactionReceipt
+): Promise<{ success: boolean; revertReason: string }> {
+  const success = txReceipt.status !== TX_STATUS_FAILED;
+  let revertReason: string = null;
+
+  if (!success) {
+    const currentBlock = await httpProvider.getBlockNumber();
+    // need archive node to access older blocks
+    if (txReceipt.blockNumber > currentBlock - 126) {
+      try {
+        revertReason = await getRevertReason(
+          txReceipt.transactionHash,
+          ETH_NETWORK,
+          txReceipt.blockNumber,
+          httpProvider
+        );
+      } catch (e) {
+        // null
+      }
+    }
+  }
+
+  return { success, revertReason };
 }
 
 export function bytesToRaw(bytesString: string): string {
