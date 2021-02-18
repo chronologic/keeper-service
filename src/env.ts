@@ -2,6 +2,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+export const ENABLED = process.env.ENABLED === 'true';
+
 export const LOG_LEVEL = (process.env.LOG_LEVEL as string) || 'info';
 
 export const ETH_NETWORK = process.env.ETH_NETWORK as string;
@@ -28,6 +30,7 @@ export const COLLATERAL_CHECK_INTERVAL_MINUTES = Number(process.env.COLLATERAL_C
 export const COLLATERAL_BUFFER_PERCENT = Number(process.env.COLLATERAL_BUFFER_PERCENT || 5);
 export const MIN_LOT_SIZE_BTC = Number(process.env.MIN_LOT_SIZE_BTC || 1);
 export const MAX_LOT_SIZE_BTC = Number(process.env.MAX_LOT_SIZE_BTC || 1000);
+export const SKIP_BALANCE_CHECKS = process.env.SKIP_BALANCE_CHECKS === 'true';
 export const WARNING_SYSTEM_TBTC_BALANCE = Number(process.env.WARNING_SYSTEM_TBTC_BALANCE || 0);
 export const MIN_SYSTEM_TBTC_BALANCE = Number(process.env.MIN_SYSTEM_TBTC_BALANCE || 0);
 export const WARNING_SYSTEM_BTC_BALANCE = Number(process.env.WARNING_SYSTEM_BTC_BALANCE || 0);

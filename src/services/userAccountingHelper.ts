@@ -1,7 +1,7 @@
 import { BigNumber } from 'ethers';
 import { getConnection, User, UserDepositTxPayment, Payment } from 'keeper-db';
 
-import { WARNING_USER_BALANCE_ETH } from '../env';
+import { SKIP_BALANCE_CHECKS, WARNING_USER_BALANCE_ETH } from '../env';
 import { createLogger } from '../logger';
 import { bnToNumberEth, numberToBnEth } from '../utils';
 import emailService from './emailService';
@@ -71,6 +71,11 @@ async function getUserPaymentsSum(userId: number): Promise<BigNumber> {
 }
 
 async function checkAllUserBalances(): Promise<void> {
+  if (SKIP_BALANCE_CHECKS) {
+    logger.warn('Skipping checking all user balances');
+    return;
+  }
+
   logger.info('Checking all user balances...');
   const users = await getConnection().createEntityManager().find(User);
 
@@ -81,6 +86,11 @@ async function checkAllUserBalances(): Promise<void> {
 }
 
 async function checkUserBalancesForDeposit(depositId: number): Promise<void> {
+  if (SKIP_BALANCE_CHECKS) {
+    logger.warn(`Skipping checking user balances for deposit ${depositId}`);
+    return;
+  }
+
   logger.info(`Checking all user balances for deposit ${depositId}...`);
   const users = await userHelper.getUsersForDeposit(depositId);
 

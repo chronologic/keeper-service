@@ -3,6 +3,7 @@ import { BigNumber } from 'ethers';
 import { btcClient, ethClient } from '../clients';
 import { tbtcToken } from '../contracts';
 import {
+  SKIP_BALANCE_CHECKS,
   MIN_SYSTEM_BTC_BALANCE,
   MIN_SYSTEM_ETH_BALANCE,
   MIN_SYSTEM_TBTC_BALANCE,
@@ -21,15 +22,29 @@ let currentEthBalance = BigNumber.from(0);
 let currentBtcBalance = 0;
 
 async function rememberSystemBalances(): Promise<void> {
+  if (SKIP_BALANCE_CHECKS) {
+    logger.warn('Skipping remembering system balances');
+    return;
+  }
+
   logger.info('Remembering system balances...');
   currentTbtcBalance = await tbtcToken.balanceOf(ethClient.defaultWallet.address);
   currentEthBalance = await ethClient.defaultWallet.getBalance();
   const { confirmed } = await btcClient.getWalletBalance();
   currentBtcBalance = confirmed;
-  logger.info('Remembered system balances.');
+  logger.info(
+    `Remembered system balances: ${bnToNumberEth(currentTbtcBalance)} TBTC, ${bnToNumberEth(
+      currentEthBalance
+    )} ETH, ${bnToNumberBtc(currentBtcBalance)} BTC`
+  );
 }
 
 async function compareSystemBalances(): Promise<void> {
+  if (SKIP_BALANCE_CHECKS) {
+    logger.warn('Skipping comparing system balances with remembered values');
+    return;
+  }
+
   logger.info('Comparing system balances with remembered values...');
   const newTbtcBalance = await tbtcToken.balanceOf(ethClient.defaultWallet.address);
   const newEthBalance = await ethClient.defaultWallet.getBalance();
@@ -60,7 +75,7 @@ async function compareSystemBalances(): Promise<void> {
       'ETH'
     );
   }
-  const minBtcBalance = currentBtcBalance * 0.97;
+  const minBtcBalance = Math.floor(currentBtcBalance * 0.97);
   logger.debug(`BTC balances. Min: ${bnToNumberBtc(minBtcBalance)}, current: ${bnToNumberBtc(newBtcBalance)}`);
   if (newBtcBalance < minBtcBalance) {
     logger.error(`BTC balance too low! Min: ${bnToNumberBtc(minBtcBalance)}, current: ${bnToNumberBtc(newBtcBalance)}`);
@@ -75,11 +90,23 @@ async function compareSystemBalances(): Promise<void> {
 }
 
 async function checkSystemBalances(): Promise<boolean> {
+  let ok = true;
+
+  if (SKIP_BALANCE_CHECKS) {
+    logger.warn('Skipping checking system balances');
+    return ok;
+  }
+
   logger.info('Checking system balances...');
   const tbtcBalance = await tbtcToken.balanceOf(ethClient.defaultWallet.address);
   const ethBalance = await ethClient.defaultWallet.getBalance();
   const { confirmed: btcBalance } = await btcClient.getWalletBalance();
-  let ok = true;
+
+  logger.info(
+    `System balances: ${bnToNumberEth(tbtcBalance)} TBTC, ${bnToNumberEth(ethBalance)} ETH, ${bnToNumberBtc(
+      btcBalance
+    )} BTC`
+  );
 
   const minTbtcBalance = numberToBnEth(MIN_SYSTEM_TBTC_BALANCE);
   const warningTbtcBalance = numberToBnEth(WARNING_SYSTEM_TBTC_BALANCE);
