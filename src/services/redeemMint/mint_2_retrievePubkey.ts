@@ -9,17 +9,13 @@ const logger = createLogger('mint_2_retrievePubkey');
 const operationType = DepositTx.Type.MINT_RETRIEVE_PUBKEY;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
-  logger.info(`Waiting for confirmations for retrieving pubkey for deposit ${deposit.depositAddress}...`);
-  const { receipt, success } = await ethClient.confirmTransaction(txHash);
-
-  // TODO: check tx status
-  logger.info(`Got confirmations for retrieving pubkey for deposit ${deposit.depositAddress}.`);
-  logger.debug(JSON.stringify(receipt, null, 2));
+  const { receipt, success, revertReason } = await ethClient.confirmTransaction(txHash);
 
   return {
     operationType,
     txHash,
     status: success ? DepositTx.Status.CONFIRMED : DepositTx.Status.ERROR,
+    revertReason,
     txCostEthEquivalent: receipt.gasUsed,
   };
 }

@@ -12,6 +12,7 @@ export interface IDepositTxParams {
   txHash?: string;
   operationType: DepositTx['Type'];
   status: DepositTx['Status'];
+  revertReason?: string;
   txCostEthEquivalent?: BigNumber;
 }
 
@@ -20,9 +21,23 @@ async function hasBroadcastedTxOfType(depositId: number, operationType: DepositT
   return !!tx;
 }
 
-async function getBroadcastedTxOfType(depositId: number, operationType: DepositTx['Type']): Promise<DepositTx> {
+async function getBroadcastedTxOfType(
+  depositId: number,
+  operationType: DepositTx['Type'],
+  checkError = true
+): Promise<DepositTx> {
   const txs = await getTxsOfTypeAndStatus(depositId, operationType, DepositTx.Status.BROADCASTED);
-  return txs[0];
+  const lastTx = txs[0];
+
+  if (lastTx && checkError) {
+    const errorCount = await getErrorCountOfType(depositId, operationType, lastTx.txHash);
+
+    if (errorCount > 0) {
+      return null;
+    }
+  }
+
+  return lastTx;
 }
 
 async function hasConfirmedTxOfType(depositId: number, operationType: DepositTx['Type']): Promise<boolean> {
@@ -35,9 +50,23 @@ async function getConfirmedTxOfType(depositId: number, operationType: DepositTx[
   return txs[0];
 }
 
-async function getErrorCountOfType(depositId: number, operationType: DepositTx['Type']): Promise<number> {
-  const txs = await getTxsOfTypeAndStatus(depositId, operationType, DepositTx.Status.ERROR);
+async function getErrorCountOfType(
+  depositId: number,
+  operationType: DepositTx['Type'],
+  txHash?: string
+): Promise<number> {
+  let txs = await getErrorTxsOfType(depositId, operationType);
+
+  if (txHash) {
+    txs = txs.filter((tx) => (tx.txHash || '').toLowerCase() === txHash.toLowerCase());
+  }
+
   return txs.length;
+}
+
+async function getErrorTxsOfType(depositId: number, operationType: DepositTx['Type']): Promise<DepositTx[]> {
+  const txs = await getTxsOfTypeAndStatus(depositId, operationType, DepositTx.Status.ERROR);
+  return txs;
 }
 
 async function getTxsOfTypeAndStatus(

@@ -10,14 +10,9 @@ const logger = createLogger('redeem_4_btcRelease');
 const operationType = DepositTx.Type.REDEEM_BTC_RELEASE;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
-  logger.info(`Waiting for confirmations for BTC reception for deposit ${deposit.depositAddress}...`);
   const minConfirmations = await tbtcConstants.getMinBtcConfirmations();
   const txReceipt = await btcClient.waitForConfirmations(txHash, minConfirmations);
   const txFee = await btcClient.getTransactionFee(txReceipt);
-
-  // TODO: check tx status
-  logger.info(`Got confirmations for redemption sig for deposit ${deposit.depositAddress}.`);
-  logger.debug(JSON.stringify(txReceipt, null, 2));
 
   const txCostEthEquivalent = await priceFeed.convertSatoshiToWei(txFee);
 
@@ -30,9 +25,6 @@ async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxPara
 }
 
 async function execute(deposit: Deposit): Promise<IDepositTxParams> {
-  logger.info(`Releasing BTC for deposit ${deposit.depositAddress}...`);
-
-  // TODO: add debug logs for each step
   logger.debug(`Fetching redemption tx for deposit ${deposit.depositAddress}...`);
   const redemptionTx = await depositTxHelper.getConfirmedTxOfType(deposit.id, DepositTx.Type.REDEEM_REDEMPTION_REQUEST);
   logger.debug(`Fetched redemption tx for deposit ${deposit.depositAddress}.`, redemptionTx);

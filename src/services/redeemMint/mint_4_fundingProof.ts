@@ -4,22 +4,19 @@ import { tbtcConstants, depositContractAt } from '../../contracts';
 import { createLogger } from '../../logger';
 import { btcClient, ethClient } from '../../clients';
 import depositTxHelper, { IDepositTxParams } from '../depositTxHelper';
+import { MINUTE_MILLIS } from '../../constants';
 
 const logger = createLogger('mint_4_fundingProof');
 const operationType = DepositTx.Type.MINT_PROVIDE_FUNDING_PROOF;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
-  logger.info(`Waiting for confirmations for funding proof for deposit ${deposit.depositAddress}...`);
-  const { receipt, success } = await ethClient.confirmTransaction(txHash);
-
-  // TODO: check tx status
-  logger.info(`Got confirmations for funding proof for deposit ${deposit.depositAddress}.`);
-  logger.debug(JSON.stringify(receipt, null, 2));
+  const { receipt, success, revertReason } = await ethClient.confirmTransaction(txHash);
 
   return {
     operationType,
     txHash,
     status: success ? DepositTx.Status.CONFIRMED : DepositTx.Status.ERROR,
+    revertReason,
     txCostEthEquivalent: receipt.gasUsed,
   };
 }
@@ -39,7 +36,7 @@ async function execute(deposit: Deposit): Promise<IDepositTxParams> {
   // and will revert if not a match
   const tx = await depositContract.provideBTCFundingProof(proofArgs);
 
-  logger.debug(`Redemption proof tx:\n${JSON.stringify(tx, null, 2)}`);
+  logger.debug(`Redemption proof tx for ${deposit.depositAddress}:`, tx);
 
   const txHash = tx.hash;
 
@@ -54,4 +51,6 @@ export default {
   operationType,
   confirm,
   execute,
+  maxRetries: 10,
+  retryDelay: 10 * MINUTE_MILLIS,
 };

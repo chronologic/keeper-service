@@ -1,19 +1,15 @@
 import { Deposit, DepositTx } from 'keeper-db';
 
 import { depositContractAt, vendingMachine } from '../../contracts';
-import { createLogger } from '../../logger';
 import { ethClient } from '../../clients';
 import priceFeed from '../priceFeed';
 import { weiToSatoshi } from '../../utils';
 import { IDepositTxParams } from '../depositTxHelper';
 
-const logger = createLogger('mint_6_tdtToTbtc');
 const operationType = DepositTx.Type.MINT_TDT_TO_TBTC;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
-  logger.info(`Waiting for confirmations for TDT approve and call for deposit ${deposit.depositAddress}...`);
-  const { receipt, success } = await ethClient.confirmTransaction(txHash);
-  logger.info(`Got confirmations for TDT approve and call for deposit ${deposit.depositAddress}.`);
+  const { receipt, success, revertReason } = await ethClient.confirmTransaction(txHash);
   const depositContract = depositContractAt(deposit.mintedDeposit.depositAddress);
   const signerFeeTbtc = await depositContract.getSignerFeeTbtc();
   const signerFeeSats = weiToSatoshi(signerFeeTbtc);
@@ -24,6 +20,7 @@ async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxPara
     operationType,
     txHash,
     status: success ? DepositTx.Status.CONFIRMED : DepositTx.Status.ERROR,
+    revertReason,
     txCostEthEquivalent: txCost,
   };
 }

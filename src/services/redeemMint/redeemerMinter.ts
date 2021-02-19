@@ -22,6 +22,7 @@ import mint_4_fundingProof from './mint_4_fundingProof';
 import mint_5_approveTdt from './mint_5_approveTdt';
 import mint_6_tdtToTbtc from './mint_6_tdtToTbtc';
 import { depositContractAt } from '../../contracts';
+import { sleep } from '../../utils';
 
 type ConfirmFn = (deposit: Deposit, txHash: string) => Promise<IDepositTxParams>;
 type ExecuteFn = (deposit: Deposit) => Promise<IDepositTxParams>;
@@ -30,6 +31,8 @@ interface IStepParams {
   operationType: DepositTx['Type'];
   confirm: ConfirmFn;
   execute: ExecuteFn;
+  maxRetries?: number;
+  retryDelay?: number;
 }
 
 const logger = createLogger('redeem/mint');
@@ -132,6 +135,8 @@ async function processDeposit(deposit: Deposit): Promise<void> {
         operationType: step.operationType,
         confirmFn: step.confirm,
         executeFn: step.execute,
+        maxRetries: step.maxRetries,
+        retryDelay: step.retryDelay,
       });
     }
 
@@ -155,29 +160,51 @@ async function executeStep({
   confirmFn,
   executeFn,
   operationType,
+  maxRetries = 0,
+  retryDelay = MINUTE_MILLIS,
 }: {
   deposit: Deposit;
   confirmFn: ConfirmFn;
   executeFn: ExecuteFn;
   operationType: DepositTx['Type'];
+  maxRetries?: number;
+  retryDelay?: number;
 }): Promise<void> {
-  logger.info(`Initiating ${operationType} for deposit ${deposit.depositAddress}...`);
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    try {
+      logger.info(
+        `Initiating ${operationType} for deposit ${deposit.depositAddress} (max retries: ${maxRetries}, retryDelay: ${retryDelay}ms)...`
+      );
 
-  if (await depositTxHelper.hasConfirmedTxOfType(deposit.id, operationType)) {
-    logger.info(`${operationType} is ${DepositTx.Status.CONFIRMED} for deposit ${deposit.depositAddress}.`);
-    return;
+      if (await depositTxHelper.hasConfirmedTxOfType(deposit.id, operationType)) {
+        logger.info(`${operationType} is ${DepositTx.Status.CONFIRMED} for deposit ${deposit.depositAddress}.`);
+        return;
+      }
+
+      const broadcastedTx = await depositTxHelper.getBroadcastedTxOfType(deposit.id, operationType);
+      if (broadcastedTx) {
+        logger.info(
+          `${operationType} is in ${DepositTx.Status.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
+        );
+        await tryConfirmFn(confirmFn, deposit, broadcastedTx.txHash, operationType);
+        return;
+      }
+
+      logger.info(`Executing and confirming ${operationType} for deposit ${deposit.depositAddress}...`);
+      const res = await tryExecuteFn(executeFn, deposit, operationType);
+      await tryConfirmFn(confirmFn, deposit, res.txHash, operationType);
+      return;
+    } catch (error) {
+      await handleStepError({
+        error,
+        deposit,
+        operationType,
+        maxRetries,
+        retryDelay,
+      });
+    }
   }
-
-  const broadcastedTx = await depositTxHelper.getBroadcastedTxOfType(deposit.id, operationType);
-  if (broadcastedTx) {
-    logger.info(
-      `${operationType} is in ${DepositTx.Status.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
-    );
-    await tryConfirmFn(confirmFn, deposit, broadcastedTx.txHash, operationType);
-  }
-
-  const res = await tryExecuteFn(executeFn, deposit, operationType);
-  await tryConfirmFn(confirmFn, deposit, res.txHash, operationType);
 }
 
 async function tryConfirmFn(
@@ -188,13 +215,17 @@ async function tryConfirmFn(
 ): Promise<IDepositTxParams> {
   let confirmedError = false;
   try {
+    logger.info(`Confirming ${operationType} for deposit ${deposit.depositAddress}...`);
     const res = await confirmFn(deposit, txHash);
+    logger.info(`Confirmed ${operationType} for deposit ${deposit.depositAddress}`);
 
     await depositTxHelper.storeAndAddUserPayments(deposit, res);
     confirmedError = res.status === DepositTx.Status.ERROR;
 
     if (confirmedError) {
-      throw new Error(`Tx ${txHash} for deposit ${deposit.depositAddress} is failed to complete on the blockchain`);
+      throw new Error(
+        `Tx ${txHash} for deposit ${deposit.depositAddress} reverted: ${res.revertReason || 'Unknown error'}`
+      );
     }
 
     return res;
@@ -217,7 +248,9 @@ async function tryExecuteFn(
   operationType: DepositTx['Type']
 ): Promise<IDepositTxParams> {
   try {
+    logger.info(`Executing ${operationType} for deposit ${deposit.depositAddress}...`);
     const res = await executeFn(deposit);
+    logger.info(`Executed ${operationType} for deposit ${deposit.depositAddress}`);
 
     await depositTxHelper.storeAndAddUserPayments(deposit, res);
 
@@ -229,6 +262,33 @@ async function tryExecuteFn(
       operationType,
     });
     throw e;
+  }
+}
+
+async function handleStepError({
+  error,
+  deposit,
+  operationType,
+  maxRetries,
+  retryDelay,
+}: {
+  error: Error;
+  deposit: Deposit;
+  operationType: DepositTx['Type'];
+  maxRetries?: number;
+  retryDelay?: number;
+}) {
+  logger.info(`Handling error for ${operationType} for deposit ${deposit.depositAddress}...`);
+  if (maxRetries > 0) {
+    const errorCount = await depositTxHelper.getErrorCountOfType(deposit.id, operationType);
+    if (errorCount > maxRetries) {
+      throw error;
+    } else {
+      logger.info(`Retrying ${operationType} for deposit ${deposit.depositAddress} in ${retryDelay}ms...`);
+      await sleep(retryDelay);
+    }
+  } else {
+    throw error;
   }
 }
 

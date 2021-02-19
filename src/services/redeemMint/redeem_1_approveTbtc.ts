@@ -1,22 +1,19 @@
 import { Deposit, DepositTx } from 'keeper-db';
 
 import { depositContractAt, vendingMachine } from '../../contracts';
-import { createLogger } from '../../logger';
 import { ethClient } from '../../clients';
 import { IDepositTxParams } from '../depositTxHelper';
 
-const logger = createLogger('redeem_1_approveTbtc');
 const operationType = DepositTx.Type.REDEEM_APPROVE_TBTC;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
-  logger.info(`Waiting for confirmations for TBTC spending for deposit ${deposit.depositAddress}...`);
-  const { receipt, success } = await ethClient.confirmTransaction(txHash);
-  logger.info(`Got confirmations for TBTC spending for deposit ${deposit.depositAddress}.`);
+  const { receipt, success, revertReason } = await ethClient.confirmTransaction(txHash);
 
   return {
     operationType,
     txHash,
     status: success ? DepositTx.Status.CONFIRMED : DepositTx.Status.ERROR,
+    revertReason,
     txCostEthEquivalent: receipt.gasUsed,
   };
 }

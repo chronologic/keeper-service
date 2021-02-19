@@ -1,22 +1,15 @@
 import { Deposit, DepositTx } from 'keeper-db';
 
 import { depositContractAt, tbtcConstants, tbtcSystem } from '../../contracts';
-import { createLogger } from '../../logger';
 import { btcClient } from '../../clients';
 import priceFeed from '../priceFeed';
 import { IDepositTxParams } from '../depositTxHelper';
 
-const logger = createLogger('mint_3_fundBtc');
 const operationType = DepositTx.Type.MINT_FUND_BTC;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
-  logger.info(`Waiting for confirmations for BTC fund for deposit ${deposit.depositAddress}...`);
   const minConfirmations = await tbtcConstants.getMinBtcConfirmations();
   const txReceipt = await btcClient.waitForConfirmations(txHash, minConfirmations);
-
-  // TODO: check tx status
-  logger.info(`Got confirmations for BTC fund for deposit ${deposit.depositAddress}.`);
-  logger.debug(JSON.stringify(txReceipt, null, 2));
 
   const txFee = await btcClient.getTransactionFee(txReceipt);
   const txCostEthEquivalent = await priceFeed.convertSatoshiToWei(txFee);
@@ -30,7 +23,6 @@ async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxPara
 }
 
 async function execute(deposit: Deposit): Promise<IDepositTxParams> {
-  logger.info(`Funding BTC for deposit ${deposit.depositAddress}...`);
   const depositContract = depositContractAt(deposit.mintedDeposit.depositAddress);
   const lotSizeSatoshis = await depositContract.getLotSizeSatoshis();
   const { x, y } = await tbtcSystem.getOrWaitForRegisteredPubkeyEvent(

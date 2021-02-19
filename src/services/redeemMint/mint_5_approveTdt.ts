@@ -1,22 +1,19 @@
 import { Deposit, DepositTx } from 'keeper-db';
 
 import { depositToken } from '../../contracts';
-import { createLogger } from '../../logger';
 import { ethClient } from '../../clients';
 import { IDepositTxParams } from '../depositTxHelper';
 
-const logger = createLogger('mint_5_approveTdt');
 const operationType = DepositTx.Type.MINT_APPROVE_TDT;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
-  logger.info(`Waiting for confirmations for TDT approve and call for deposit ${deposit.depositAddress}...`);
-  const { receipt, success } = await ethClient.confirmTransaction(txHash);
-  logger.info(`Got confirmations for TDT approve and call for deposit ${deposit.depositAddress}.`);
+  const { receipt, success, revertReason } = await ethClient.confirmTransaction(txHash);
 
   return {
     operationType,
     txHash,
     status: success ? DepositTx.Status.CONFIRMED : DepositTx.Status.ERROR,
+    revertReason,
     txCostEthEquivalent: receipt.gasUsed,
   };
 }
