@@ -3,8 +3,11 @@ import ElectrumClient from 'electrum-client-js';
 import sha256 from 'bcrypto/lib/sha256.js';
 
 import { ElectrumConfig } from '../types';
+import { createLogger } from '../logger';
 
 const { digest } = sha256;
+
+const logger = createLogger('ElectrumClient');
 
 /**
  * @typedef {object} ScriptPubKey
@@ -186,7 +189,7 @@ export default class Client {
    * Establish connection with the server.
    */
   async connect() {
-    console.log('Connecting to electrum server...');
+    logger.debug('Connecting to electrum server...');
 
     await this.electrumClient.connect('tbtc', '1.4.2').catch((err) => {
       throw new Error(`failed to connect: [${err}]`);
@@ -197,7 +200,7 @@ export default class Client {
    * Disconnect from the server.
    */
   async close() {
-    console.log('Closing connection to electrum server...');
+    logger.debug('Closing connection to electrum server...');
     this.electrumClient.close();
   }
 
@@ -332,7 +335,7 @@ export default class Client {
           const receivedScriptHash = msg[0];
           const status = msg[1];
 
-          console.log(`Received notification for script hash: [${receivedScriptHash}] with status: [${status}]`);
+          logger.debug(`Received notification for script hash: [${receivedScriptHash}] with status: [${status}]`);
 
           if (receivedScriptHash === scriptHash) {
             const result = await callback(status);
@@ -390,7 +393,7 @@ export default class Client {
           for (const msg of messages) {
             const { height } = msg;
 
-            console.log(`Received notification of a new block at height: [${height}]`);
+            logger.debug(`Received notification of a new block at height: [${height}]`);
 
             // Invoke callback for the current block.
             const result = await callback(msg);
@@ -404,7 +407,7 @@ export default class Client {
 
         this.electrumClient.subscribe.on(eventName, listener);
 
-        console.log(`Registered listener for ${eventName} event`);
+        logger.debug(`Registered listener for ${eventName} event`);
 
         return;
       } catch (err) {
@@ -500,7 +503,7 @@ export default class Client {
         // Catch error so it can proceed to other transactions from the list.
         // This will produce a `undefined` entry in the list that we need to filter
         // out.
-        .map((txHash) => this.getTransaction(txHash).catch(console.error))
+        .map((txHash) => this.getTransaction(txHash).catch(logger.error))
     );
 
     // Filter out entries for which `getTransaction` failed in the previous step.

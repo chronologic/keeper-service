@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { createLogger as createWinstonLogger, format, transports, LeveledLogMethod } from 'winston';
 
 import { LOG_LEVEL } from './env';
@@ -59,5 +60,12 @@ export function createLogger(source: string): ICustomLogger {
 }
 
 const logger = createLogger('logger');
+
+// override console to suppress logging from dependency libs that use it
+// logs will still go through in 'debug' mode
+console.log = logger.debug;
+console.info = logger.debug;
+console.warn = logger.debug;
+console.error = logger.debug;
 
 export default logger;
