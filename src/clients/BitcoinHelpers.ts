@@ -876,7 +876,10 @@ const BitcoinHelpers: IBitcoinHelpers = {
             blocks.push(block);
 
             if (blocks.length > 1) {
-              return resolve(block);
+              resolve(block);
+
+              // need to return a truthy value to stop the electrumClient listener
+              return 'done';
             }
             return null;
           })
