@@ -4,7 +4,7 @@
   "description": "Monitoring and redeeming service for Keeper",
   "main": "dist/index.js",
   "engines": {
-    "node": "14.x"
+    "node": "10.x"
   },
   "scripts": {
     "eslint": "eslint src/server.ts",
