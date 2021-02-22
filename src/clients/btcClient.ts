@@ -91,10 +91,10 @@ const logger = createLogger('btcClient');
 
 const MAX_ADDRESS_GAP = 10;
 const NETWORK = getNetworkFromEnv();
-const TEST_ADDRESS = getAddress(99999); // "random" address for fee estimation
 // eslint-disable-next-line new-cap
 const wallet = new bip84.fromZPrv(BTC_ZPRV);
 export const zpub = wallet.getAccountPublicKey();
+const TEST_ADDRESS = getAddress(99999); // "random" address for fee estimation
 
 logger.info(`BTC wallet zpub is: ${zpub}, first receiving address: ${getAddress(0)}`);
 
