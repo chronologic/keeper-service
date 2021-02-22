@@ -12,7 +12,7 @@ You can read more about this project at our [blog](https://blog.chronologic.netw
 
 ## Demo video
 
-[![Keeper UI workflow](assets/demo.png)](https://vimeo.com/510148877)
+[![Keeper UI workflow](assets/demo.png)](https://youtu.be/Z5BhXKu6d_c)
 
 ## Project overview
 
