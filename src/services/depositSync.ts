@@ -27,9 +27,7 @@ async function syncPeriodically(): Promise<void> {
 }
 
 async function syncDepositsFromLogs(): Promise<void> {
-  const lastSyncedBlockNumber = await getLastSyncedBlockNumber();
-  logger.info(`🚀 syncing deposits from logs starting from block ${lastSyncedBlockNumber}...`);
-  const events = await tbtcSystem.contract.queryFilter(tbtcSystem.contract.filters.Funded(), lastSyncedBlockNumber);
+  const events = await findNewDeposits();
 
   logger.info(`ℹ found ${events.length} events, syncing...`);
 
@@ -46,6 +44,33 @@ async function syncDepositsFromLogs(): Promise<void> {
   }
 
   logger.info(`🎉 syncing deposits from logs completed. stored ${storedCount}, skipped ${skippedCount}`);
+}
+
+async function findNewDeposits(): Promise<Event[]> {
+  const lastSyncedBlockNumber = await getLastSyncedBlockNumber();
+  logger.info(`🚀 syncing deposits from logs starting from block ${lastSyncedBlockNumber}...`);
+  const events = await tbtcSystem.contract.queryFilter(tbtcSystem.contract.filters.Funded(), lastSyncedBlockNumber);
+  const lastSyncedDeposits = await getDepositsForBlockNumber(lastSyncedBlockNumber);
+
+  const newEvents = events.filter(
+    (e) =>
+      !lastSyncedDeposits.find((d) => {
+        const parsed = tbtcSystem.contract.interface.parseLog(e);
+        const [depositAddress]: [string] = parsed.args as any;
+
+        return d.depositAddress.toLowerCase() === depositAddress.toLowerCase();
+      })
+  );
+
+  return newEvents;
+}
+
+async function getDepositsForBlockNumber(blockNumber: number): Promise<Deposit[]> {
+  const deposit = await getConnection().createEntityManager().find(Deposit, {
+    where: { blockNumber },
+  });
+
+  return deposit;
 }
 
 async function getLastSyncedBlockNumber(): Promise<number> {
