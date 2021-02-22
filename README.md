@@ -10,7 +10,7 @@ Keeper is a service for [Keep Network](https://keep.network/) Node Operators to 
 
 You can read more about this project at our [blog](https://blog.chronologic.network/) and https://blog.chronologic.network/draft-chronologic-is-awarded-grant-from-keep-network-7c3d0e36a4be
 
-## Demo video
+## :movie_camera: Demo video
 
 [![Keeper UI workflow](assets/demo.png)](https://youtu.be/Z5BhXKu6d_c)
 
@@ -32,7 +32,7 @@ And this is how they interact:
 
 ![Component Interactions](assets/component-interactions.png)
 
-## Repository overview
+## :octocat: Repository overview
 
 This repository holds the core logic of the Keeper service.
 Its main responsibilities are:
@@ -51,7 +51,7 @@ The next section describes them in detail.
 
 All logic described below is also executed at system startup to ensure proper operation. See `src/manager.ts`.
 
-#### Updating list of active deposits
+#### :ledger: Updating list of active deposits
 
 Located in `src/services/depositSync.ts`.
 
@@ -61,7 +61,7 @@ By storing the deposits in the database we create an internal audit trail of wha
 
 The process does not need to immediately detect new deposits since it's rather unlikely that a new deposit would instantly become undercollateralized.
 
-#### Checking collateralization of deposits
+#### :clipboard: Checking collateralization of deposits
 
 Located in `src/services/depositMonitor.ts`.
 
@@ -71,7 +71,7 @@ The process fetches the current BTC/ETH exchange rate and calculates collaterali
 
 If a deposit is deemed undercollateralized, it's marked for redemption in the database and the redeem/mint process is initialized.
 
-#### Executing the redeem/mint cycle for undercollateralized deposits
+#### :recycle: Executing the redeem/mint cycle for undercollateralized deposits
 
 Located in `src/services/redeemMint`.
 
@@ -94,7 +94,7 @@ The process sends email notifications to system admins and affected users when:
 - cycle is completed
 - error was encountered
 
-#### Monitoring system asset balances (ETH/TBTC/BTC)
+#### :bank: Monitoring system asset balances (ETH/TBTC/BTC)
 
 Located in `src/services/systemAccountingHelper.ts`.
 
@@ -125,7 +125,7 @@ Located in `src/services/paymentProcessor.ts`.
 
 Every few minutes, the payment smart contract is scanned for new payments. All new payments are stored in the database and the appropriate user is credited with the amount. The user also receives an email confirmation of the payment.
 
-### Environment variables
+### :wrench: Environment variables
 
 This repo uses [`dotenv`](https://www.npmjs.com/package/dotenv) to load environment variables.
 
@@ -172,7 +172,7 @@ In production, environment variables can be injected directly.
 | `WARNING_SYSTEM_ETH_BALANCE`        | `number`  | `0`        | If system ETH balance falls below this level, system will start sending email notifications to admins.                                                                                     |
 | `MIN_SYSTEM_ETH_BALANCE`            | `number`  | `0`        | If system ETH balance falls below this level, system will halt.                                                                                                                            |
 
-### Deployment
+### :rocket: Deployment
 
 This project is configured to be deployed on https://heroku.com. The deployment config can be found in `Procfile`.
 
@@ -182,7 +182,7 @@ Detailed deployment instructions can be found [here](https://devcenter.heroku.co
 
 Monitoring is outside of the scope of this project. A monitoring solution may be added as needed, e.g. `pm2`, `prometheus` + `grafana` etc.
 
-### Building
+### :construction: Building
 
 Run `npm run build`.
 
@@ -196,13 +196,13 @@ The Keeper Service does not guarantee that a deposit will be redeemed before liq
 
 The Keeper Service maintainers may not be held liable for any damages or loss of funds that arise from using the Service.
 
-### How do users withdraw their ETH?
+### :bulb: How do users withdraw their ETH?
 
 Currently, there is no automatic way for users to withdraw their ETH if e.g. they want to stop using the service. Instead, the user should contact the service admins and they should return the funds manually.
 
 To make sure the user's balance in the system is correct after returning the funds, the user has to be either removed from the database, or a record in the `payment` table has to be added to zero out the balance.
 
-### Additional Links
+### :link: Additional Links
 
 - Website: https://chronologic.network/
 - Twitter: https://twitter.com/chronologiceth
