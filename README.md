@@ -134,7 +134,7 @@ In production, environment variables can be injected directly.
 | `ENABLED`                           | `boolean` |            | Main switch - turn to something other than `true` to disable the service.                                                                                                                  |
 | `LOG_LEVEL`                         | `string`  | `info`     | Standard [`npm`](https://github.com/winstonjs/winston#logging-levels) log level                                                                                                            |
 | ### DB                              |           |            |
-| `DB_URL`                            | `string`  |            | PostgreSQL connection string                                                                                                                                                               |
+| `DATABASE_URL`                      | `string`  |            | PostgreSQL connection string                                                                                                                                                               |
 | ### ETH                             |           |            |
 | `ETH_NETWORK`                       | `string`  |            | Name of Ethereum network to connect to (`mainnet`/`ropsten`/...)                                                                                                                           |
 | `INFURA_API_KEY`                    | `string`  |            | API key for [Infura](https://infura.io/) (even the free account should be more than enough to run the service)                                                                             |
