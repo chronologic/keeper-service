@@ -30,7 +30,7 @@
     "eth-revert-reason": "^1.0.3",
     "ethers": "^5.0.25",
     "keeper-db": "github:chronologic/keeper-db#v1.0.0",
-    "keeper-payment-contract": "github:chronologic/keeper-payment-contract#v1.0.0-rc.1",
+    "keeper-payment-contract": "github:chronologic/keeper-payment-contract#v1.0.0",
     "memory-cache": "^0.2.0",
     "node-fetch": "^2.6.1",
     "node-mailjet": "^3.3.1",
