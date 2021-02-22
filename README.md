@@ -10,6 +10,10 @@ Keeper is a service for [Keep Network](https://keep.network/) Node Operators to 
 
 You can read more about this project at our [blog](https://blog.chronologic.network/) and https://blog.chronologic.network/draft-chronologic-is-awarded-grant-from-keep-network-7c3d0e36a4be
 
+## Demo video
+
+[![Keeper UI workflow](assets/demo.png)](https://vimeo.com/510148877)
+
 ## Project overview
 
 The project consists of the following repositories:
