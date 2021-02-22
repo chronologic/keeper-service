@@ -3,7 +3,9 @@ import getRevertReason from 'eth-revert-reason';
 
 import { ETH_NETWORK, ETH_XPRV, INFURA_API_KEY } from '../env';
 import { ETH_MIN_CONFIRMATIONS, SECOND_MILLIS } from '../constants';
+import { createLogger } from '../logger';
 
+const logger = createLogger('ethClient');
 const TX_STATUS_FAILED = 0;
 
 export const wsProvider = new ethers.providers.InfuraWebSocketProvider(ETH_NETWORK, INFURA_API_KEY);
@@ -13,6 +15,8 @@ httpProvider.pollingInterval = 15 * SECOND_MILLIS;
 
 const hdNode = ethers.utils.HDNode.fromExtendedKey(ETH_XPRV);
 export const defaultWallet = new ethers.Wallet(getPrivKeyAtIndex(0), httpProvider);
+
+logger.info(`ETH wallet address is: ${getAddressAtIndex(0)}`);
 
 export function getAddressAtIndex(index: number): string {
   return hdNode.derivePath(index.toString()).address.toLowerCase();

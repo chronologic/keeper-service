@@ -7,7 +7,6 @@ import { BigNumber } from 'ethers';
 
 import { ELECTRUMX_HOST, ELECTRUMX_PORT, ELECTRUMX_PROTOCOL, ELECTRUMX_NETWORK, BTC_ZPRV } from '../env';
 import { createLogger } from '../logger';
-import { getAddressAtIndex } from './ethClient';
 import { numberToBnBtc } from '../utils';
 import { IFundingProof } from '../types';
 import BitcoinHelpers from './BitcoinHelpers';
@@ -83,11 +82,6 @@ interface IBlockHeader {
   hex: string;
 }
 
-interface IMerkleProof {
-  proof: string;
-  position: number;
-}
-
 export interface IPublicKeyPoint {
   x: string;
   y: string;
@@ -97,10 +91,12 @@ const logger = createLogger('btcClient');
 
 const MAX_ADDRESS_GAP = 10;
 const NETWORK = getNetworkFromEnv();
-const TEST_ADDRESS = getAddressAtIndex(999999); // "random" address for fee estimation
+const TEST_ADDRESS = getAddress(99999); // "random" address for fee estimation
 // eslint-disable-next-line new-cap
 const wallet = new bip84.fromZPrv(BTC_ZPRV);
 export const zpub = wallet.getAccountPublicKey();
+
+logger.info(`BTC wallet zpub is: ${zpub}, first receiving address: ${getAddress(0)}`);
 
 BitcoinHelpers.setElectrumConfig({
   protocol: ELECTRUMX_PROTOCOL,
