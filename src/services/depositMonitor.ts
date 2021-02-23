@@ -27,7 +27,11 @@ const redeemableStatusCodes = [
 ] as any[];
 
 async function init(): Promise<void> {
-  await checkPeriodically();
+  if (COLLATERAL_CHECK_INTERVAL > 0) {
+    await checkPeriodically();
+  } else {
+    logger.warn('Deposit monitor (collateral check) disabled');
+  }
 }
 
 async function checkPeriodically(): Promise<void> {

@@ -1,7 +1,7 @@
 import { Event } from 'ethers';
 import { getConnection, Deposit } from 'keeper-db';
 
-import { SYNC_MIN_BLOCK } from '../env';
+import { SYNC_MIN_BLOCK, DEPOSIT_SYNC_INTERVAL_MINUTES } from '../env';
 import { createLogger } from '../logger';
 import { bnToNumberBtc } from '../utils';
 import { tbtcSystem } from '../contracts';
@@ -9,11 +9,14 @@ import { MINUTE_MILLIS } from '../constants';
 import depositHelper from './depositHelper';
 
 const logger = createLogger('depositSync');
-const SYNC_INTERVAL_MINUTES = 5;
-const SYNC_INTERVAL = SYNC_INTERVAL_MINUTES * MINUTE_MILLIS;
+const SYNC_INTERVAL = DEPOSIT_SYNC_INTERVAL_MINUTES * MINUTE_MILLIS;
 
 async function init(): Promise<void> {
-  await syncPeriodically();
+  if (SYNC_INTERVAL > 0) {
+    await syncPeriodically();
+  } else {
+    logger.warn('Syncing deposits disabled');
+  }
 }
 
 async function syncPeriodically(): Promise<void> {
@@ -22,7 +25,7 @@ async function syncPeriodically(): Promise<void> {
   } catch (e) {
     logger.error(e);
   }
-  logger.info(`Next run in ${SYNC_INTERVAL_MINUTES} minutes`);
+  logger.info(`Next run in ${DEPOSIT_SYNC_INTERVAL_MINUTES} minutes`);
   setTimeout(syncPeriodically, SYNC_INTERVAL);
 }
 
