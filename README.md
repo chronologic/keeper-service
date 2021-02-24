@@ -77,16 +77,34 @@ Located in `src/services/redeemMint`.
 
 The Keeper service relies on the fact that once a deposit is redeemed, the released BTC can be recycled and used to mint more TBTC that can be used for another redemption. This is called the "redeem/mint cycle".
 
-This process executes that cycle. Each step has a simple, uniform structure:
+This process executes that cycle. The full cycle consists of the following steps:
+
+- redeem
+  - approve TBTC spending
+  - request redemption
+  - provide redemption signature
+  - release BTC
+  - provide redemption proof
+- mint
+  - create deposit
+  - retrieve pubkey
+  - send BTC
+  - provide funding proof
+  - approve TDT spending
+  - convert TDT to TBTC
+
+An example cycle along with transaction fees can be found on [KeepScan](https://keepscan.com/deposits/0xae089edfc31c37482cd03c522f866b2e6f6b7b43) (this cycle was not executed by Keeper, it is only provided as reference).
+
+Each step has a simple, uniform structure:
 
 - execute a transaction
 - confirm the transaction
 
 Current state and progress, as well as transaction hash and cost are stored in the database so that the process is able to resume an interrupted cycle (e.g. due to an outage).
 
-The implementation redeems/mints one deposit at a time to simplify accounting, TBTC/BTC/ETH and state management. This is deemed appropriate, since the service is designed to start the redemption process even before courtesy call, which should give enough time for all deposits to be redeemed in time.
+The implementation redeems/mints one deposit at a time to simplify accounting, as well as TBTC/BTC/ETH and state management. This is deemed appropriate, since the service is designed to start the redemption process even before courtesy call, which should give enough time for all deposits to be redeemed in time.
 
-Due to high cost of the redeem/mint cycle (>150 USD at the time writing), redeeming smaller lot sizes might actually cost more than letting them get liquidated. Therefore, the minimum accepted lot size can be configured in the system.
+Due to high cost of the redeem/mint cycle (>150 USD at the time writing), **redeeming smaller lot sizes might actually cost more than letting them get liquidated**. Therefore, the minimum accepted lot size can be configured in the system.
 
 The process sends email notifications to system admins and affected users when:
 
@@ -100,7 +118,7 @@ Located in `src/services/systemAccountingHelper.ts`.
 
 The system consumes ETH, TBTC and BTC during redeeming and minting. By far the biggest amount of asset required is TBTC, since it has to cover the large lot sizes (up to 10 BTC at the time of writing).
 
-It is advised to keep only the minimum amount of each asset to ensure proper operation (e.g. 10.1 TBTC, 1 ETH, 0.1 BTC) and have extra funds ready in safe storage.
+It is advised to keep only the minimum amount of each asset to ensure proper operation (e.g. 10.1 TBTC, 1 ETH, 0.1 BTC) and have extra funds ready in safe storage to minimize exposure and be able to quickly top up system accounts if needed.
 
 The system will perform two different checks:
 
