@@ -33,6 +33,7 @@ interface IStepParams {
   execute: ExecuteFn;
   maxRetries?: number;
   retryDelay?: number;
+  expectedStatusCode?: number;
 }
 
 const logger = createLogger('redeem/mint');
@@ -128,16 +129,25 @@ async function processDeposit(deposit: Deposit): Promise<void> {
     for (const step of steps) {
       const updatedDeposit = await depositHelper.getByAddress(deposit.depositAddress);
       const statusCode = await depositContractAt(deposit.depositAddress).getStatusCode();
-      logger.info(`Current status of deposit ${deposit.depositAddress} is ${Deposit.Status[statusCode]}`);
+      logger.info(
+        `Current status of deposit ${deposit.depositAddress} is ${statusCode} - ${Deposit.Status[statusCode]}`
+      );
+      const { expectedStatusCode } = step;
 
-      await executeStep({
-        deposit: updatedDeposit,
-        operationType: step.operationType,
-        confirmFn: step.confirm,
-        executeFn: step.execute,
-        maxRetries: step.maxRetries,
-        retryDelay: step.retryDelay,
-      });
+      if (expectedStatusCode != null && statusCode > expectedStatusCode) {
+        logger.warn(
+          `Expected status of deposit ${deposit.depositAddress} is ${expectedStatusCode} - ${Deposit.Status[expectedStatusCode]} but found ${statusCode} - ${Deposit.Status[statusCode]}. Skipping step...`
+        );
+      } else {
+        await executeStep({
+          deposit: updatedDeposit,
+          operationType: step.operationType,
+          confirmFn: step.confirm,
+          executeFn: step.execute,
+          maxRetries: step.maxRetries,
+          retryDelay: step.retryDelay,
+        });
+      }
     }
 
     await depositHelper.updateSystemStatus(deposit.depositAddress, Deposit.SystemStatus.REDEEMED);

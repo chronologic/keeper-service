@@ -46,4 +46,5 @@ export default {
   operationType,
   confirm,
   execute,
+  expectedStatusCode: Deposit.Status.AWAITING_SIGNER_SETUP,
 };
