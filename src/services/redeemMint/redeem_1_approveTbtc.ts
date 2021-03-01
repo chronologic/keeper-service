@@ -8,13 +8,16 @@ const operationType = DepositTx.Type.REDEEM_APPROVE_TBTC;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
   const { receipt, success, revertReason } = await ethClient.confirmTransaction(txHash);
+  const tx = await ethClient.httpProvider.getTransaction(txHash);
+
+  const txCost = ethClient.calcTotalTxCost(tx, receipt);
 
   return {
     operationType,
     txHash,
     status: success ? DepositTx.Status.CONFIRMED : DepositTx.Status.ERROR,
     revertReason,
-    txCostEthEquivalent: receipt.gasUsed,
+    txCostEthEquivalent: txCost,
   };
 }
 

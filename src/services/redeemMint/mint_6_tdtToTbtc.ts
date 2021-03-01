@@ -10,11 +10,14 @@ const operationType = DepositTx.Type.MINT_TDT_TO_TBTC;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
   const { receipt, success, revertReason } = await ethClient.confirmTransaction(txHash);
+  const tx = await ethClient.httpProvider.getTransaction(txHash);
+  let txCost = ethClient.calcTotalTxCost(tx, receipt);
+
   const depositContract = depositContractAt(deposit.mintedDeposit.depositAddress);
   const signerFeeTbtc = await depositContract.getSignerFeeTbtc();
   const signerFeeSats = weiToSatoshi(signerFeeTbtc);
   const signerFeeEth = await priceFeed.convertSatoshiToWei(signerFeeSats);
-  const txCost = signerFeeEth.add(receipt.gasUsed);
+  txCost = signerFeeEth.add(txCost);
 
   return {
     operationType,

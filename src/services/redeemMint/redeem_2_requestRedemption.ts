@@ -11,9 +11,12 @@ const operationType = DepositTx.Type.REDEEM_REDEMPTION_REQUEST;
 
 async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxParams> {
   const { receipt, success, revertReason } = await ethClient.confirmTransaction(txHash);
+  const tx = await ethClient.httpProvider.getTransaction(txHash);
+
+  let txCost = ethClient.calcTotalTxCost(tx, receipt);
 
   const redemptionFeeEth = await depositContractAt(deposit.depositAddress).getRedemptionFee();
-  const txCost = receipt.gasUsed.add(redemptionFeeEth);
+  txCost = txCost.add(redemptionFeeEth);
 
   return {
     operationType,

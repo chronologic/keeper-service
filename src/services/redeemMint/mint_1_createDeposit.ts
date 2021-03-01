@@ -19,7 +19,7 @@ async function confirm(deposit: Deposit, txHash: string): Promise<IDepositTxPara
 
   await depositHelper.store(deposit);
 
-  const txCost = receipt.gasUsed.add(tx.value);
+  const txCost = ethClient.calcTotalTxCost(tx, receipt);
 
   return {
     operationType,

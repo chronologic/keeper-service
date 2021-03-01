@@ -72,3 +72,13 @@ export function bytesToRaw(bytesString: string): string {
 export async function getEthBalance(address: string): Promise<BigNumber> {
   return httpProvider.getBalance(address);
 }
+
+export function calcTotalTxCost(
+  tx: ethers.providers.TransactionResponse,
+  receipt: ethers.providers.TransactionReceipt
+): BigNumber {
+  const value = tx.value || BigNumber.from('0');
+  const gasFee = receipt.gasUsed.mul(tx.gasPrice);
+
+  return value.add(gasFee);
+}
