@@ -181,16 +181,16 @@ async function send(toAddress: string, amount: number): Promise<string> {
   return txHash;
 }
 
-// TODO: this is mostly duplicated code, try to extract common code from this and 'send()'
-async function estimateSendFee(amount: number, toAddress = TEST_ADDRESS): Promise<number> {
-  // PSBT = Partially Signed Bitcoin Transaction https://github.com/bitcoin/bips/blob/master/bip-0174.mediawiki
+async function estimateSendFeeFromOneUtxo(amount: number, toAddress: string): Promise<number> {
   const psbt = new bjs.Psbt({ network: NETWORK });
 
-  const utxos = await getWalletUnspentUtxos();
+  const utxos = (await getWalletUnspentUtxos()).slice(0, 1).map((u) => ({
+    ...u,
+    value: amount + 1,
+  }));
   const txs = await getTxsForUtxos(utxos);
   const { fastestFee } = await estimateFee();
 
-  // for simplicity, always use all UTXOs
   txs.forEach((tx, i) => {
     const utxo = utxos[i];
     const txFromHex = bjs.Transaction.fromHex(tx.hex);
@@ -201,7 +201,7 @@ async function estimateSendFee(amount: number, toAddress = TEST_ADDRESS): Promis
       index: utxo.tx_pos,
       witnessUtxo: {
         script: witnessOut.script,
-        value: witnessOut.value,
+        value: amount + 1,
       },
     });
   });
@@ -212,11 +212,12 @@ async function estimateSendFee(amount: number, toAddress = TEST_ADDRESS): Promis
     value: amount,
   });
 
-  const byteLength = getByteLength(psbt.clone(), utxos, amount);
+  const byteLength = getByteLength(psbt.clone(), utxos, amount, true);
+
   return byteLength * fastestFee;
 }
 
-function getByteLength(psbt: bjs.Psbt, utxos: IUTXO[], amountToSend: number): number {
+function getByteLength(psbt: bjs.Psbt, utxos: IUTXO[], amountToSend: number, disableFeeCheck = false): number {
   const lastUtxo = utxos[utxos.length - 1];
   const changeAddress = wallet.getAddress(lastUtxo.keyIndex, true);
   const totalUtxoValue = utxos.reduce<number>((sum: number, u) => sum + u.value, 0);
@@ -232,7 +233,7 @@ function getByteLength(psbt: bjs.Psbt, utxos: IUTXO[], amountToSend: number): nu
 
   psbt.finalizeAllInputs();
 
-  return psbt.extractTransaction().byteLength();
+  return psbt.extractTransaction(disableFeeCheck).byteLength();
 }
 
 async function getTxsForUtxos(utxos: IUTXO[]): Promise<IRawTx[]> {
@@ -546,7 +547,7 @@ async function broadcastTx(rawTx: string): Promise<string> {
 export {
   broadcastTx,
   send,
-  estimateSendFee,
+  estimateSendFeeFromOneUtxo,
   waitForTransactionToAddress,
   waitForConfirmations,
   getAddress,

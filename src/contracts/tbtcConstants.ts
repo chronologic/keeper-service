@@ -15,7 +15,14 @@ const cache: ICache = {};
 
 export async function getMinBtcConfirmations(): Promise<number> {
   const cacheKey = 'minBtcConfirmations';
-  cache[cacheKey] = cache[cacheKey] || (await contract.functions.getTxProofDifficultyFactor())[0];
+  cache[cacheKey] = cache[cacheKey] || (await contract.functions.getTxProofDifficultyFactor())[0].toNumber();
 
-  return cache[cacheKey].toNumber();
+  return cache[cacheKey];
+}
+
+export async function getMinRedemptionFee(): Promise<number> {
+  const cacheKey = 'minRedemptionFee';
+  cache[cacheKey] = cache[cacheKey] || (await contract.functions.getMinimumRedemptionFee())[0].toNumber();
+
+  return cache[cacheKey];
 }

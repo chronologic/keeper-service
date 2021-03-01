@@ -1,7 +1,7 @@
 import { getConnection, Deposit, DepositTx } from 'keeper-db';
 import BN from 'bn.js';
 
-import { vendingMachine, depositContractAt } from '../../contracts';
+import { vendingMachine, depositContractAt, tbtcConstants } from '../../contracts';
 import { createLogger } from '../../logger';
 import { btcClient, ethClient } from '../../clients';
 import { IDepositTxParams } from '../depositTxHelper';
@@ -32,8 +32,9 @@ async function execute(deposit: Deposit): Promise<IDepositTxParams> {
   // TODO: add check for 'inVendingMachine' (see tbtc.js)
   // TODO: check tbtc balance
   const utxoValue = await depositContract.getUtxoValue();
-  // TODO: compare with MINIMUM_REDEMPTION_FEE from TBTCConstants contract - is it necessary?
-  const txFee = await btcClient.estimateSendFee(utxoValue, redemptionAddress);
+  const estimatedFee = await btcClient.estimateSendFeeFromOneUtxo(utxoValue, redemptionAddress);
+  const minFee = await tbtcConstants.getMinRedemptionFee();
+  const txFee = Math.max(estimatedFee, minFee);
   const outputValue = new BN(utxoValue).sub(new BN(txFee.toString()));
   const outputValueBytes = outputValue.toArrayLike(Buffer, 'le', 8);
 
