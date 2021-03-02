@@ -1,3 +1,4 @@
+/* eslint-disable prefer-template */
 /* eslint-disable camelcase */
 import PubSub from 'pubsub-js';
 import { getConnection, Deposit, DepositTx } from 'keeper-db';
@@ -33,7 +34,6 @@ interface IStepParams {
   execute: ExecuteFn;
   maxRetries?: number;
   retryDelay?: number;
-  expectedStatusCode?: number;
 }
 
 const logger = createLogger('redeem/mint');
@@ -132,22 +132,15 @@ async function processDeposit(deposit: Deposit): Promise<void> {
       logger.info(
         `Current status of deposit ${deposit.depositAddress} is ${statusCode} - ${Deposit.Status[statusCode]}`
       );
-      const { expectedStatusCode } = step;
 
-      if (expectedStatusCode != null && statusCode > expectedStatusCode) {
-        logger.warn(
-          `Expected status of deposit ${deposit.depositAddress} is ${expectedStatusCode} - ${Deposit.Status[expectedStatusCode]} but found ${statusCode} - ${Deposit.Status[statusCode]}. Skipping step...`
-        );
-      } else {
-        await executeStep({
-          deposit: updatedDeposit,
-          operationType: step.operationType,
-          confirmFn: step.confirm,
-          executeFn: step.execute,
-          maxRetries: step.maxRetries,
-          retryDelay: step.retryDelay,
-        });
-      }
+      await executeStep({
+        deposit: updatedDeposit,
+        operationType: step.operationType,
+        confirmFn: step.confirm,
+        executeFn: step.execute,
+        maxRetries: step.maxRetries,
+        retryDelay: step.retryDelay,
+      });
     }
 
     await depositHelper.updateSystemStatus(deposit.depositAddress, Deposit.SystemStatus.REDEEMED);
@@ -184,24 +177,36 @@ async function executeStep({
   while (true) {
     try {
       logger.info(
-        `Initiating ${operationType} for deposit ${deposit.depositAddress} (max retries: ${maxRetries}, retryDelay: ${retryDelay}ms)...`
+        `Initiating ${operationType} for deposit ${deposit.depositAddress}${
+          deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+        } (max retries: ${maxRetries}, retryDelay: ${retryDelay}ms)...`
       );
 
       if (await depositTxHelper.hasConfirmedTxOfType(deposit.id, operationType)) {
-        logger.info(`${operationType} is ${DepositTx.Status.CONFIRMED} for deposit ${deposit.depositAddress}.`);
+        logger.info(
+          `${operationType} is ${DepositTx.Status.CONFIRMED} for deposit ${deposit.depositAddress}${
+            deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+          }.`
+        );
         return;
       }
 
       const broadcastedTx = await depositTxHelper.getBroadcastedTxOfType(deposit.id, operationType);
       if (broadcastedTx) {
         logger.info(
-          `${operationType} is in ${DepositTx.Status.BROADCASTED} state for deposit ${deposit.depositAddress}. Confirming...`
+          `${operationType} is in ${DepositTx.Status.BROADCASTED} state for deposit ${deposit.depositAddress}${
+            deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+          }. Confirming...`
         );
         await tryConfirmFn(confirmFn, deposit, broadcastedTx.txHash, operationType);
         return;
       }
 
-      logger.info(`Executing and confirming ${operationType} for deposit ${deposit.depositAddress}...`);
+      logger.info(
+        `Executing and confirming ${operationType} for deposit ${deposit.depositAddress}${
+          deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+        }...`
+      );
       const res = await tryExecuteFn(executeFn, deposit, operationType);
       await tryConfirmFn(confirmFn, deposit, res.txHash, operationType);
       return;
@@ -225,16 +230,26 @@ async function tryConfirmFn(
 ): Promise<IDepositTxParams> {
   let confirmedError = false;
   try {
-    logger.info(`Confirming ${operationType} for deposit ${deposit.depositAddress}...`);
+    logger.info(
+      `Confirming ${operationType} for deposit ${deposit.depositAddress}${
+        deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+      }...`
+    );
     const res = await confirmFn(deposit, txHash);
-    logger.info(`Confirmed ${operationType} for deposit ${deposit.depositAddress}`);
+    logger.info(
+      `Confirmed ${operationType} for deposit ${deposit.depositAddress}${
+        deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+      }`
+    );
 
     await depositTxHelper.storeAndAddUserPayments(deposit, res);
     confirmedError = res.status === DepositTx.Status.ERROR;
 
     if (confirmedError) {
       throw new Error(
-        `Tx ${txHash} for deposit ${deposit.depositAddress} reverted: ${res.revertReason || 'Unknown error'}`
+        `Tx ${txHash} for deposit ${deposit.depositAddress}${
+          deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+        } reverted: ${res.revertReason || 'Unknown error'}`
       );
     }
 
@@ -258,9 +273,17 @@ async function tryExecuteFn(
   operationType: DepositTx['Type']
 ): Promise<IDepositTxParams> {
   try {
-    logger.info(`Executing ${operationType} for deposit ${deposit.depositAddress}...`);
+    logger.info(
+      `Executing ${operationType} for deposit ${deposit.depositAddress}${
+        deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+      }...`
+    );
     const res = await executeFn(deposit);
-    logger.info(`Executed ${operationType} for deposit ${deposit.depositAddress}`);
+    logger.info(
+      `Executed ${operationType} for deposit ${deposit.depositAddress}${
+        deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+      }`
+    );
 
     await depositTxHelper.storeAndAddUserPayments(deposit, res);
 
@@ -288,13 +311,21 @@ async function handleStepError({
   maxRetries?: number;
   retryDelay?: number;
 }) {
-  logger.info(`Handling error for ${operationType} for deposit ${deposit.depositAddress}...`);
+  logger.info(
+    `Handling error for ${operationType} for deposit ${deposit.depositAddress}${
+      deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+    }...`
+  );
   if (maxRetries > 0) {
     const errorCount = await depositTxHelper.getErrorCountOfType(deposit.id, operationType);
     if (errorCount > maxRetries) {
       throw error;
     } else {
-      logger.info(`Retrying ${operationType} for deposit ${deposit.depositAddress} in ${retryDelay}ms...`);
+      logger.info(
+        `Retrying ${operationType} for deposit ${deposit.depositAddress}${
+          deposit.mintedDeposit ? ' (-> ' + deposit.mintedDeposit.depositAddress + ')' : ''
+        } in ${retryDelay}ms...`
+      );
       await sleep(retryDelay);
     }
   } else {
