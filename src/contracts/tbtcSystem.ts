@@ -17,6 +17,7 @@ interface IRegisteredPubkeyEvent {
   depositAddress: string;
   x: string;
   y: string;
+  txHash: string;
 }
 
 const { abi, address } = getAbiAndAddress('TBTCSystem');
@@ -73,13 +74,13 @@ async function getRegisteredPubkeyEvent(depositAddress: string, fromBlock = 0) {
   const event = await getRawRegisteredPubkeyEvent(depositAddress, fromBlock);
   return parseRegisteredPubkeyEvent(event);
 }
-async function getRawRegisteredPubkeyEvent(depositAddress: string, fromBlock = 0): Promise<ethers.Event> {
+export async function getRawRegisteredPubkeyEvent(depositAddress: string, fromBlock = 0): Promise<ethers.Event> {
   const [event] = await contract.queryFilter(contract.filters.RegisteredPubkey(depositAddress), fromBlock);
   return event;
 }
 function parseRegisteredPubkeyEvent(event: ethers.Event): IRegisteredPubkeyEvent {
   const [depositAddress, x, y] = event.args;
-  return { depositAddress, x, y };
+  return { depositAddress, x, y, txHash: event.transactionHash };
 }
 
 export async function getNewDepositFeeEstimate(): Promise<BigNumber> {
