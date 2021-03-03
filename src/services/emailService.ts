@@ -317,13 +317,14 @@ async function send({
 
   logger.debug(`Getting email params for email ${cacheKey}...`);
   const { recipients, subject, body } = await getEmailParams();
+  const validRecipients = recipients.filter(Boolean);
 
-  if (recipients.length === 0) {
+  if (validRecipients.length === 0) {
     logger.debug(`Email for key ${cacheKey} has no recipients, not sending.`);
     return;
   }
 
-  logger.info(`Sending email(s) ${cacheKey} to ${recipients.join(',')}...`);
+  logger.info(`Sending email(s) ${cacheKey} to ${validRecipients.join(',')}...`);
 
   const bodyWithFooter = `${body}
 
@@ -337,7 +338,7 @@ Sent by Keeper - liquidation preventer tool for the KEEP network`;
           Email: EMAIL_SENDER,
           Name: 'Keeper',
         },
-        To: recipients.map((email) => ({
+        To: validRecipients.map((email) => ({
           Email: email,
         })),
         Subject: subject,
