@@ -138,6 +138,7 @@ async function getOrCreateUser(manager: typeorm.EntityManager, address: string):
 
   if (!user) {
     user = await manager.save(User, { address } as User);
+    user.balanceEth = user.balanceEth || BigNumber.from('0');
   }
 
   return user;
