@@ -9,5 +9,5 @@ const { abi, address } = getAbiAndAddress('DepositFactory');
 export const contract = new ethers.Contract(address, abi, ethClient.defaultWallet);
 
 export async function createDeposit(lotSize: BigNumber, creationFee: BigNumber): Promise<IEthTx> {
-  return contract.functions.createDeposit(lotSize, { value: creationFee, gasLimit: 4_000_000 });
+  return contract.functions.createDeposit(lotSize, { value: creationFee, gasLimit: 6_000_000 });
 }
