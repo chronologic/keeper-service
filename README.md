@@ -9,6 +9,8 @@ This is the main repository for the Keeper project.
 Keeper is a service for [Keep Network](https://keep.network/) Node Operators to help prevent liquidations due to undercollateralization.
 
 You can read more about this project at our [blog](https://blog.chronologic.network/) and https://blog.chronologic.network/draft-chronologic-is-awarded-grant-from-keep-network-7c3d0e36a4be
+\
+🗞 https://twitter.com/keep_project/status/1389704394833219585
 
 ## :movie_camera: Demo video
 
